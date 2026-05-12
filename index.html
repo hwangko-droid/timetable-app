@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>시간표 진단기</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f1117; --sur:#1a1d27; --sur2:#22263a; --bor:#2e3350;
+  --blue:#4f8ef7; --bdim:#1e3a6e;
+  --red:#f75f5f;  --rdim:#4a1a1a;
+  --grn:#4fd18a;  --gdim:#1a3d2b;
+  --yel:#f7c44f;  --ydim:#3d2e0a;
+  --txt:#e8eaf6;  --tx2:#8b92b8; --tx3:#4a5080;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+
+/* ── 헤더 ── */
+header{background:var(--sur);border-bottom:1px solid var(--bor);padding:0 28px;
+  display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-txt{font-size:.98rem;font-weight:900;letter-spacing:-.3px}
+.logo-sub{font-size:.68rem;color:var(--tx2);margin-top:1px}
+.hbadge{font-family:var(--mono);font-size:.68rem;color:var(--blue);
+  border:1px solid var(--bdim);border-radius:4px;padding:3px 10px;background:#0d1f3c}
+
+/* ── 업로드 ── */
+#up-screen{display:flex;align-items:center;justify-content:center;
+  min-height:calc(100vh - 56px);padding:40px}
+.upbox{background:var(--sur);border:2px dashed var(--bor);border-radius:16px;
+  padding:56px 48px;text-align:center;max-width:500px;width:100%;
+  transition:.2s;cursor:pointer}
+.upbox:hover,.upbox.drag{border-color:var(--blue);background:#0d1f3c}
+.upbox input{display:none}
+.up-ico{font-size:3.2rem;margin-bottom:14px}
+.up-tit{font-size:1.1rem;font-weight:700;margin-bottom:8px}
+.up-desc{font-size:.83rem;color:var(--tx2);line-height:1.7}
+.up-hint{margin-top:12px;font-size:.72rem;color:var(--tx3);font-family:var(--mono)}
+.btn-up{margin-top:22px;background:var(--blue);color:#fff;border:none;
+  border-radius:8px;padding:11px 32px;font-size:.93rem;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:.2s}
+.btn-up:hover{background:#3a7af0;transform:translateY(-1px)}
+
+/* ── 메인 레이아웃 ── */
+#main{display:none}
+.layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 56px)}
+
+/* ── 사이드바 ── */
+.sidebar{background:var(--sur);border-right:1px solid var(--bor);
+  padding:18px 0;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto}
+.sb-sec{padding:0 14px;margin-bottom:22px}
+.sb-lbl{font-size:.65rem;font-weight:700;color:var(--tx3);letter-spacing:1.2px;
+  text-transform:uppercase;margin-bottom:7px;padding:0 4px}
+.nav{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;
+  cursor:pointer;font-size:.85rem;color:var(--tx2);border:none;background:none;
+  width:100%;text-align:left;font-family:inherit;transition:.15s}
+.nav:hover{background:var(--sur2);color:var(--txt)}
+.nav.active{background:var(--bdim);color:var(--blue);font-weight:700}
+.nav .ico{font-size:.95rem;width:18px}
+.nbadge{margin-left:auto;font-family:var(--mono);font-size:.68rem;
+  padding:2px 7px;border-radius:10px;font-weight:700}
+.nb-r{background:var(--rdim);color:var(--red)}
+.nb-b{background:var(--bdim);color:var(--blue)}
+
+/* ── 콘텐츠 ── */
+.content{padding:26px;overflow-y:auto}
+.page{display:none}.page.on{display:block}
+.ptit{font-size:1.2rem;font-weight:900;margin-bottom:4px;letter-spacing:-.4px}
+.psub{font-size:.8rem;color:var(--tx2);margin-bottom:22px}
+
+/* ── 통계 ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:26px}
+.sc{background:var(--sur);border:1px solid var(--bor);border-radius:10px;padding:16px}
+.sc .n{font-size:1.9rem;font-weight:900;font-family:var(--mono)}
+.sc .l{font-size:.73rem;color:var(--tx2);margin-top:3px}
+.sc.r{border-color:var(--red)}.sc.r .n{color:var(--red)}
+.sc.g .n{color:var(--grn)}.sc.b .n{color:var(--blue)}
+
+/* ── 미배정 카드 ── */
+.ua-list{display:flex;flex-direction:column;gap:14px}
+.ua-card{background:var(--sur);border:1px solid var(--bor);border-radius:12px;overflow:hidden}
+.ua-hd{display:flex;align-items:center;gap:10px;padding:14px 18px;
+  background:var(--rdim);border-bottom:1px solid #6b1a1a;cursor:pointer}
+.ua-hd:hover{background:#5a1515}
+.ua-tag{font-family:var(--mono);font-size:.75rem;font-weight:700;color:var(--red);
+  background:#4a1a1a;border:1px solid var(--red);border-radius:5px;padding:3px 9px}
+.ua-title{font-size:.9rem;font-weight:700;flex:1}
+.ua-arrow{color:var(--tx3);transition:.2s;font-size:.8rem}
+.ua-arrow.open{transform:rotate(180deg)}
+.ua-bd{padding:18px;display:none}.ua-bd.open{display:block}
+
+/* ── 진단 섹션 ── */
+.ds{margin-bottom:18px}
+.ds-lbl{font-size:.68rem;font-weight:700;color:var(--tx3);letter-spacing:1px;
+  text-transform:uppercase;margin-bottom:8px}
+.reason{display:flex;gap:8px;padding:9px 13px;background:var(--sur2);
+  border-radius:7px;margin-bottom:5px;font-size:.83rem;line-height:1.6}
+.reason .bul{color:var(--yel);font-weight:700;flex-shrink:0}
+.warn-box{background:#1a1500;border-left:3px solid var(--yel);
+  border-radius:0 7px 7px 0;padding:9px 13px;font-size:.83rem;margin-bottom:5px}
+
+/* ── 같은 시간 그리드 ── */
+.st-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px}
+.st-item{background:var(--sur2);border:1px solid var(--bor);border-radius:6px;padding:7px 9px;font-size:.76rem}
+.st-kl{font-family:var(--mono);font-weight:700;color:var(--blue)}
+.st-sb{color:var(--txt);margin-top:1px}
+.st-tc{color:var(--tx2);font-size:.7rem;margin-top:1px}
+
+/* ── 물레방아 체인 ── */
+.chain-list{display:flex;flex-direction:column;gap:9px}
+.chain{background:var(--sur2);border:1px solid var(--bor);border-radius:9px;padding:13px 15px}
+.chain-meta{font-size:.7rem;color:var(--tx3);margin-bottom:7px;font-family:var(--mono)}
+.chain-steps{display:flex;flex-direction:column;gap:5px}
+.cstep{display:flex;align-items:center;gap:8px;font-size:.82rem}
+.snum{width:20px;height:20px;border-radius:50%;background:var(--bdim);color:var(--blue);
+  font-weight:700;font-size:.68rem;font-family:var(--mono);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stch{font-weight:700;min-width:34px}
+.sarr{color:var(--tx3)}
+.sdet{color:var(--tx2);flex:1}
+.smv{color:var(--grn);font-weight:700}
+.no-chain{color:var(--tx3);font-size:.82rem;padding:6px 0;font-style:italic}
+
+/* ── 검색바 ── */
+.searchbar{width:100%;background:var(--sur);border:1px solid var(--bor);
+  border-radius:8px;padding:9px 13px;font-size:.86rem;color:var(--txt);
+  font-family:inherit;margin-bottom:14px;outline:none}
+.searchbar:focus{border-color:var(--blue)}
+.searchbar::placeholder{color:var(--tx3)}
+
+/* ── 교사 그리드 ── */
+.tc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:9px}
+.tc{background:var(--sur);border:1px solid var(--bor);border-radius:9px;
+  padding:13px;cursor:pointer;transition:.15s}
+.tc:hover{border-color:var(--blue);background:var(--sur2)}
+.tc-ab{font-family:var(--mono);font-size:.98rem;font-weight:700;color:var(--blue)}
+.tc-cn{font-size:.76rem;color:var(--tx2);margin-top:3px}
+.tc-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:7px}
+.tag{font-size:.66rem;padding:2px 7px;border-radius:4px;font-weight:700;
+  background:var(--bdim);color:var(--blue)}
+
+/* ── 학반 선택 ── */
+.kl-sel{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.kc{font-family:var(--mono);font-size:.78rem;padding:5px 13px;border-radius:6px;
+  border:1px solid var(--bor);cursor:pointer;background:var(--sur);
+  color:var(--tx2);transition:.15s}
+.kc:hover,.kc.on{border-color:var(--blue);color:var(--blue);background:var(--bdim)}
+
+/* ── 시간표 ── */
+.tt-wrap{overflow-x:auto;margin-top:8px}
+table.tt{width:100%;border-collapse:collapse;font-size:.79rem;min-width:460px;font-family:var(--mono)}
+table.tt th{background:var(--sur2);color:var(--tx2);padding:7px 4px;text-align:center;
+  font-size:.7rem;border:1px solid var(--bor);font-weight:700}
+table.tt td{border:1px solid var(--bor);padding:7px 5px;text-align:center;min-width:62px;vertical-align:middle}
+table.tt td.filled{background:#0d1f3c;cursor:pointer}
+table.tt td.filled:hover{background:#152d55}
+table.tt td.empty{background:var(--rdim);color:var(--red);font-size:.68rem}
+table.tt td.skip{background:var(--sur2);color:var(--tx3);font-size:.66rem}
+table.tt td.sel{background:var(--bdim)!important;border-color:var(--blue)!important}
+.tt-sb{font-weight:700;color:var(--txt);font-size:.76rem}
+.tt-kl{font-size:.66rem;color:var(--blue);margin-top:2px}
+
+/* ── 뒤로 버튼 ── */
+.back-row{display:flex;align-items:center;gap:11px;margin-bottom:14px}
+.btn-back{background:var(--sur2);border:1px solid var(--bor);border-radius:6px;
+  padding:5px 14px;color:var(--tx2);cursor:pointer;font-family:inherit;font-size:.8rem;transition:.15s}
+.btn-back:hover{border-color:var(--blue);color:var(--blue)}
+.back-tit{font-size:.92rem;font-weight:700}
+
+/* ── 물레방아 탭 ── */
+.carousel-hint{font-size:.8rem;color:var(--tx2);margin-bottom:14px;line-height:1.7;
+  background:var(--sur2);border-radius:8px;padding:12px 14px;border-left:3px solid var(--blue)}
+.sel-info{background:var(--bdim);border-radius:8px;padding:9px 13px;
+  margin-bottom:12px;font-size:.84rem;display:none}
+
+/* ── 로딩 / 빈 상태 ── */
+.loading{text-align:center;padding:40px;color:var(--tx2)}
+.spin{display:inline-block;animation:spin 1s linear infinite;font-size:1.4rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:40px;color:var(--tx2)}
+.empty-ico{font-size:2.4rem;margin-bottom:10px}
+
+/* ── 개요 미배정 목록 ── */
+.ov-item{display:flex;align-items:center;gap:10px;padding:9px 13px;
+  background:var(--rdim);border:1px solid #6b1a1a;border-radius:8px;margin-bottom:7px;font-size:.83rem}
+.ov-kl{font-family:var(--mono);color:var(--red);font-weight:700}
+.ov-info{color:var(--tx2)}
+.ov-type{color:var(--red);margin-left:auto}
+.link{color:var(--blue);cursor:pointer;text-decoration:underline;font-size:.82rem}
+
+@media(max-width:768px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:static;height:auto}
+  .stats{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span style="font-size:1.3rem">📅</span>
+    <div>
+      <div class="logo-txt">시간표 진단기</div>
+      <div class="logo-sub">Timetable Diagnostics</div>
+    </div>
+  </div>
+  <div class="hbadge">압핀 호환 · GitHub Pages</div>
+</header>
+
+<!-- ── 업로드 화면 ── -->
+<div id="up-screen">
+  <div class="upbox" id="upbox">
+    <div class="up-ico">📂</div>
+    <div class="up-tit">시간표 파일을 업로드하세요</div>
+    <div class="up-desc">
+      압핀 출력 → <strong>전체학반 시간표</strong> (.xlsx)<br>
+      드래그하거나 클릭해서 파일을 선택하세요
+    </div>
+    <div class="up-hint">압핀 3.0 / 4.0 · 학생용(학반별) 시간표 엑셀</div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+    <br>
+    <button class="btn-up" onclick="document.getElementById('fileInput').click()">파일 선택</button>
+  </div>
+</div>
+
+<!-- ── 메인 화면 ── -->
+<div id="main">
+  <div class="layout">
+
+    <!-- 사이드바 -->
+    <div class="sidebar">
+      <div class="sb-sec">
+        <div class="sb-lbl">분석</div>
+        <button class="nav active" onclick="go('overview',this)">
+          <span class="ico">🏠</span> 개요
+        </button>
+        <button class="nav" onclick="go('unassigned',this)">
+          <span class="ico">⚠️</span> 미배정 진단
+          <span class="nbadge nb-r" id="nb-ua">0</span>
+        </button>
+        <button class="nav" onclick="go('carousel',this)">
+          <span class="ico">🔄</span> 물레방아 탐색
+        </button>
+      </div>
+      <div class="sb-sec">
+        <div class="sb-lbl">시간표 보기</div>
+        <button class="nav" onclick="go('teachers',this)">
+          <span class="ico">👤</span> 교사별
+          <span class="nbadge nb-b" id="nb-tc">0</span>
+        </button>
+        <button class="nav" onclick="go('klasses',this)">
+          <span class="ico">🏫</span> 학반별
+          <span class="nbadge nb-b" id="nb-kl">0</span>
+        </button>
+      </div>
+      <div class="sb-sec">
+        <div class="sb-lbl">파일</div>
+        <button class="nav" onclick="resetApp()">
+          <span class="ico">📂</span> 새 파일 열기
+        </button>
+      </div>
+    </div>
+
+    <!-- 콘텐츠 -->
+    <div class="content">
+
+      <div class="page on" id="page-overview">
+        <div class="ptit">📊 분석 개요</div>
+        <div class="psub">업로드된 시간표 전체 현황</div>
+        <div class="stats" id="stat-row"></div>
+        <div id="ov-detail"></div>
+      </div>
+
+      <div class="page" id="page-unassigned">
+        <div class="ptit">⚠️ 미배정 진단</div>
+        <div class="psub">조회·진로·동아를 제외한 실제 미배정 칸과 원인을 분석합니다</div>
+        <div class="ua-list" id="ua-list"></div>
+      </div>
+
+      <div class="page" id="page-carousel">
+        <div class="ptit">🔄 물레방아 탐색</div>
+        <div class="psub">교사를 선택하고 이동할 수업 칸을 클릭하면 연쇄 교체 경로를 탐색합니다</div>
+        <div class="carousel-hint">
+          ① 교사 약어를 선택 → ② 시간표에서 <strong>이동하고 싶은 칸</strong>을 클릭<br>
+          → 해당 수업을 다른 교시로 옮길 수 있는 <strong>연쇄 교체 경로</strong>가 나타납니다
+        </div>
+        <input class="searchbar" id="cs-search" placeholder="교사 약어 검색..." oninput="filterCarousel(this.value)">
+        <div class="tc-grid" id="cs-list"></div>
+        <div id="cs-detail" style="display:none"></div>
+      </div>
+
+      <div class="page" id="page-teachers">
+        <div class="ptit">👤 교사별 시간표</div>
+        <div class="psub">교사 약어를 클릭하면 개인 시간표를 확인할 수 있습니다</div>
+        <input class="searchbar" id="tc-search" placeholder="교사 약어 검색..." oninput="filterTeachers(this.value)">
+        <div class="tc-grid" id="tc-list"></div>
+        <div id="tc-detail" style="display:none"></div>
+      </div>
+
+      <div class="page" id="page-klasses">
+        <div class="ptit">🏫 학반별 시간표</div>
+        <div class="psub">학반을 선택하면 전체 시간표를 확인할 수 있습니다</div>
+        <div class="kl-sel" id="kl-sel"></div>
+        <div id="kl-detail"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// 상수
+// ═══════════════════════════════════════════════
+const DAYS = ['월','화','수','목','금'];
+const MAX_P = {월:7,화:7,수:6,목:7,금:7};
+const SKIP_SUBJ = new Set(['진로','동아','창체','조회']);
+
+// 컬럼 인덱스 → {day, period}
+const COL_MAP = {};
+const DAY_STARTS = {월:1,화:8,수:15,목:21,금:28};
+for(const [day, start] of Object.entries(DAY_STARTS)){
+  for(let p=1; p<=MAX_P[day]; p++) COL_MAP[start+p-1] = {day, period:p};
+}
+
+// ═══════════════════════════════════════════════
+// 전역 데이터
+// ═══════════════════════════════════════════════
+let D = {
+  klassTT: {},      // klass → { 'day_period': {subject, teacher} }
+  teacherSch: {},   // abbr  → [{klass, day, period, subject}]
+  klasses: [],
+  teachers: [],
+  unassigned: [],
+  diagnoses: [],
+};
+
+// ═══════════════════════════════════════════════
+// 업로드
+// ═══════════════════════════════════════════════
+const upbox = document.getElementById('upbox');
+upbox.addEventListener('dragover', e=>{e.preventDefault();upbox.classList.add('drag');});
+upbox.addEventListener('dragleave', ()=>upbox.classList.remove('drag'));
+upbox.addEventListener('drop', e=>{e.preventDefault();upbox.classList.remove('drag');
+  if(e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);});
+document.getElementById('fileInput').addEventListener('change', e=>{
+  if(e.target.files[0]) readFile(e.target.files[0]);});
+
+function readFile(file){
+  upbox.innerHTML='<div class="loading"><span class="spin">⚙️</span><p style="margin-top:10px;font-size:.88rem">분석 중...</p></div>';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+      parseRows(rows);
+      initApp();
+    } catch(err) {
+      upbox.innerHTML='<p style="color:var(--red);padding:20px">파일을 읽을 수 없습니다.<br>압핀 학생용 시간표 엑셀인지 확인해주세요.</p>';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ═══════════════════════════════════════════════
+// 파싱 (engine.py → JS 변환)
+// ═══════════════════════════════════════════════
+function parseRows(rows){
+  D.klassTT = {};
+  D.teacherSch = {};
+
+  let i = 4;
+  while(i < rows.length){
+    const r0 = rows[i];
+    if(r0 && r0[0] && String(r0[0]).includes('-')){
+      const klass = String(r0[0]).trim();
+      const sRow  = r0;
+      const tRow  = rows[i+1] || [];
+      D.klassTT[klass] = {};
+
+      for(const [col, {day, period}] of Object.entries(COL_MAP)){
+        const c = parseInt(col);
+        let subj = sRow[c] != null ? String(sRow[c]).trim() : null;
+        let tchr = tRow[c] != null ? String(tRow[c]).trim() : null;
+        if(subj === '') subj = null;
+        if(tchr === '') tchr = null;
+
+        if(subj){
+          D.klassTT[klass][`${day}_${period}`] = {subject:subj, teacher:tchr||''};
+          if(tchr && !SKIP_SUBJ.has(subj)){
+            if(!D.teacherSch[tchr]) D.teacherSch[tchr] = [];
+            D.teacherSch[tchr].push({klass, day, period, subject:subj});
+          }
+        }
+      }
+      i += 2;
+    } else { i++; }
+  }
+
+  D.klasses = Object.keys(D.klassTT).sort();
+  D.teachers = Object.keys(D.teacherSch).sort().map(abbr=>({
+    abbr,
+    count: D.teacherSch[abbr].length,
+    subjects: [...new Set(D.teacherSch[abbr].map(s=>s.subject))].slice(0,4),
+  }));
+
+  D.unassigned = findUnassigned();
+  D.diagnoses  = diagnoseAll();
+}
+
+function findUnassigned(){
+  const result = [];
+  for(const klass of D.klasses){
+    for(const day of DAYS){
+      for(let p=1; p<=MAX_P[day]; p++){
+        if(day==='월' && p===1) continue; // 조회
+        const slot = D.klassTT[klass][`${day}_${p}`];
+        if(!slot){
+          result.push({klass, day, period:p, type:'완전빈칸'});
+        } else if(!SKIP_SUBJ.has(slot.subject) && !slot.teacher){
+          result.push({klass, day, period:p, subject:slot.subject, type:'교사미배정'});
+        }
+      }
+    }
+  }
+  return result;
+}
+
+function diagnoseAll(){
+  return D.unassigned.map(u=>{
+    const {klass, day, period} = u;
+    const grade = klass.split('-')[0];
+
+    // 같은 시간 다른 반 현황
+    const sameTime = [];
+    for(const k of D.klasses){
+      const s = D.klassTT[k][`${day}_${period}`];
+      if(s && !SKIP_SUBJ.has(s.subject)) sameTime.push({klass:k, subject:s.subject, teacher:s.teacher});
+    }
+
+    // 같은 학년 빈 파트너
+    const emptyPartners = D.klasses.filter(k=>{
+      if(k===klass) return false;
+      if(k.split('-')[0]!==grade) return false;
+      return !D.klassTT[k][`${day}_${period}`];
+    });
+
+    const reasons = [];
+    reasons.push(`${day}요일 ${period}교시에 이미 ${sameTime.filter(s=>s.teacher).length}개 반이 수업 중`);
+    if(emptyPartners.length){
+      reasons.push(`같은 학년 중 함께 비어있는 반: ${emptyPartners.join(', ')}`);
+      reasons.push('→ 이동수업 묶음이 같이 막혀있을 가능성 높음');
+    }
+
+    const chains = findCarousel(klass, day, period);
+    return {...u, sameTime, emptyPartners, reasons, chains};
+  });
+}
+
+function findCarousel(targetKlass, targetDay, targetPeriod){
+  const grade = targetKlass.split('-')[0];
+  const chains = [];
+
+  // 같은 학년 교사별 해당 요일 배정 맵
+  const tdMap = {}; // abbr → {period: slot}
+  for(const [abbr, slots] of Object.entries(D.teacherSch)){
+    for(const s of slots){
+      if(s.day===targetDay && s.klass.split('-')[0]===grade){
+        if(!tdMap[abbr]) tdMap[abbr]={}; 
+        tdMap[abbr][s.period]=s;
+      }
+    }
+  }
+
+  for(const teacher of Object.keys(tdMap).sort()){
+    // target_period에 이미 수업 있으면 skip
+    if(tdMap[teacher][targetPeriod]) continue;
+
+    // 1단계: 이 교사가 targetKlass를 다른 교시에 가르치면 이동 가능
+    for(const [fp, slot] of Object.entries(tdMap[teacher])){
+      if(slot.klass===targetKlass){
+        chains.push([{step:1,teacher,klass:targetKlass,day:targetDay,
+          from_period:parseInt(fp),to_period:targetPeriod,subject:slot.subject}]);
+      }
+    }
+
+    // 2단계: 이 교사가 다른 반의 수업을 옮기면 그 자리에 다른 교사가 들어오는 구조
+    for(const [fp, slot] of Object.entries(tdMap[teacher])){
+      const otherKlass = slot.klass;
+      const otherSlot = D.klassTT[otherKlass]?.[`${targetDay}_${targetPeriod}`];
+      if(!otherSlot || !otherSlot.teacher) continue;
+      const otherTeacher = otherSlot.teacher;
+      if(otherTeacher===teacher) continue;
+      if(tdMap[otherTeacher]?.[parseInt(fp)]) continue; // other도 그 교시에 수업 있으면 skip
+      chains.push([
+        {step:1,teacher,klass:otherKlass,day:targetDay,
+          from_period:parseInt(fp),to_period:targetPeriod,subject:slot.subject},
+        {step:2,teacher:otherTeacher,klass:otherKlass,day:targetDay,
+          from_period:targetPeriod,to_period:parseInt(fp),subject:otherSlot.subject},
+      ]);
+    }
+  }
+
+  // 중복 제거 + 단계순 정렬
+  const seen = new Set();
+  return chains
+    .sort((a,b)=>a.length-b.length)
+    .filter(c=>{
+      const key = JSON.stringify(c.map(s=>[s.teacher,s.from_period,s.to_period]));
+      if(seen.has(key)) return false; seen.add(key); return true;
+    }).slice(0,6);
+}
+
+// ═══════════════════════════════════════════════
+// 앱 초기화
+// ═══════════════════════════════════════════════
+function initApp(){
+  document.getElementById('up-screen').style.display='none';
+  document.getElementById('main').style.display='block';
+  document.getElementById('nb-ua').textContent = D.unassigned.length;
+  document.getElementById('nb-tc').textContent = D.teachers.length;
+  document.getElementById('nb-kl').textContent = D.klasses.length;
+  renderOverview();
+  renderUnassigned();
+  renderTeacherGrid();
+  renderKlassSel();
+  renderCarouselList();
+}
+
+function resetApp(){
+  D={klassTT:{},teacherSch:{},klasses:[],teachers:[],unassigned:[],diagnoses:[]};
+  document.getElementById('up-screen').style.display='flex';
+  document.getElementById('main').style.display='none';
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════
+// 개요
+// ═══════════════════════════════════════════════
+function renderOverview(){
+  const ua = D.unassigned.length;
+  const total = Object.values(D.teacherSch).reduce((s,v)=>s+v.length,0);
+  document.getElementById('stat-row').innerHTML=`
+    <div class="sc b"><div class="n">${D.teachers.length}</div><div class="l">교사 수</div></div>
+    <div class="sc b"><div class="n">${D.klasses.length}</div><div class="l">학반 수</div></div>
+    <div class="sc g"><div class="n">${total}</div><div class="l">총 배정 수업</div></div>
+    <div class="sc ${ua>0?'r':'g'}"><div class="n">${ua}</div><div class="l">미배정 칸</div></div>`;
+
+  let html = '';
+  if(ua===0){
+    html='<div class="empty"><div class="empty-ico">✅</div><div>모든 수업이 완전히 배정되었습니다</div></div>';
+  } else {
+    html=`<div style="font-size:.85rem;color:var(--tx2);margin-bottom:10px">
+      ⚠️ 미배정 ${ua}건 발견 — <span class="link" onclick="goTo('unassigned')">진단 보기 →</span></div>`;
+    for(const u of D.unassigned){
+      html+=`<div class="ov-item">
+        <span class="ov-kl">${u.klass}</span>
+        <span class="ov-info">${u.day}요일 ${u.period}교시</span>
+        <span class="ov-type">${u.type}</span>
+      </div>`;
+    }
+  }
+  document.getElementById('ov-detail').innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════
+// 미배정 진단
+// ═══════════════════════════════════════════════
+function renderUnassigned(){
+  const el=document.getElementById('ua-list');
+  if(!D.diagnoses.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">✅</div><div>미배정 없음</div></div>';return;
+  }
+  el.innerHTML=D.diagnoses.map((d,i)=>`
+    <div class="ua-card">
+      <div class="ua-hd" onclick="toggleUA(${i})">
+        <span class="ua-tag">${d.klass} · ${d.day}요일 ${d.period}교시</span>
+        <span class="ua-title">${d.type}</span>
+        <span class="ua-arrow" id="arr-${i}">▼</span>
+      </div>
+      <div class="ua-bd" id="bd-${i}">
+        <div class="ds">
+          <div class="ds-lbl">원인 분석</div>
+          ${d.reasons.map(r=>`<div class="reason"><span class="bul">→</span><span>${r}</span></div>`).join('')}
+          ${d.emptyPartners.length?`<div class="warn-box">
+            <span style="color:var(--yel);font-weight:700">! </span>
+            함께 비어있는 반: <strong style="color:var(--yel)">${d.emptyPartners.join(', ')}</strong><br>
+            <span style="font-size:.78rem;color:var(--tx2)">→ 이동수업 묶음이 동시에 막혀있을 가능성이 높습니다</span>
+          </div>`:''}
+        </div>
+        <div class="ds">
+          <div class="ds-lbl">같은 시간 배정 현황 (${d.sameTime.length}개 반)</div>
+          <div class="st-grid">
+            ${d.sameTime.map(s=>`<div class="st-item">
+              <div class="st-kl">${s.klass}</div>
+              <div class="st-sb">${s.subject}</div>
+              <div class="st-tc">${s.teacher}</div>
+            </div>`).join('')}
+          </div>
+        </div>
+        <div class="ds">
+          <div class="ds-lbl">물레방아 교체 경로 (${d.chains.length}개)</div>
+          ${renderChains(d.chains)}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function toggleUA(i){
+  document.getElementById('bd-'+i).classList.toggle('open');
+  document.getElementById('arr-'+i).classList.toggle('open');
+}
+
+function renderChains(chains){
+  if(!chains.length) return '<p class="no-chain">자동 탐색된 경로가 없습니다. 수동 조정이 필요합니다.</p>';
+  return '<div class="chain-list">'+chains.map((c,i)=>`
+    <div class="chain">
+      <div class="chain-meta">${i+1}번 경로 — ${c.length}단계 교체</div>
+      <div class="chain-steps">
+        ${c.map(s=>`<div class="cstep">
+          <div class="snum">${s.step}</div>
+          <div class="stch">${s.teacher}</div>
+          <div class="sarr">·</div>
+          <div class="sdet">
+            ${s.klass} ${s.day}요일
+            <span class="smv">${s.from_period}교시→${s.to_period}교시</span>
+            <span style="color:var(--tx3);font-size:.72rem">(${s.subject})</span>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`).join('')+'</div>';
+}
+
+// ═══════════════════════════════════════════════
+// 교사별
+// ═══════════════════════════════════════════════
+function renderTeacherGrid(q=''){
+  const filtered=D.teachers.filter(t=>t.abbr.includes(q));
+  document.getElementById('tc-list').innerHTML=filtered.map(t=>`
+    <div class="tc" onclick="showTeacher('${t.abbr}')">
+      <div class="tc-ab">${t.abbr}</div>
+      <div class="tc-cn">${t.count}시간 배정</div>
+      <div class="tc-tags"><span class="tag">${t.subjects.join(' · ')}</span></div>
+    </div>`).join('');
+}
+function filterTeachers(q){ renderTeacherGrid(q); }
+
+function showTeacher(abbr){
+  document.getElementById('tc-list').style.display='none';
+  document.getElementById('tc-search').style.display='none';
+  const map=buildMap(abbr);
+  document.getElementById('tc-detail').style.display='block';
+  document.getElementById('tc-detail').innerHTML=`
+    <div class="back-row">
+      <button class="btn-back" onclick="closeTeacher()">← 목록</button>
+      <span class="back-tit">${abbr} 선생님 — ${D.teacherSch[abbr]?.length||0}시간</span>
+    </div>
+    <div class="tt-wrap">${buildTT(abbr,map,false,null)}</div>`;
+}
+function closeTeacher(){
+  document.getElementById('tc-list').style.display='grid';
+  document.getElementById('tc-search').style.display='block';
+  document.getElementById('tc-detail').style.display='none';
+}
+
+function buildMap(abbr){
+  const map={};
+  for(const s of (D.teacherSch[abbr]||[])) map[`${s.day}_${s.period}`]=s;
+  return map;
+}
+
+function buildTT(abbr, map, clickable, selKey){
+  let h='<table class="tt"><thead><tr><th>요일＼교시</th>';
+  for(let p=1;p<=7;p++) h+=`<th>${p}</th>`;
+  h+='</tr></thead><tbody>';
+  for(const day of DAYS){
+    h+=`<tr><th>${day}</th>`;
+    for(let p=1;p<=7;p++){
+      const inDay=p<=MAX_P[day];
+      const key=`${day}_${p}`;
+      const sel=selKey===key;
+      if(!inDay){h+=`<td class="skip">—</td>`;continue;}
+      if(day==='월'&&p===1){h+=`<td class="skip">조회</td>`;continue;}
+      const s=map[key];
+      if(s){
+        h+=`<td class="filled${sel?' sel':''}" ${clickable?`onclick="cClick('${abbr}','${day}',${p})"`:''}>
+          <div class="tt-sb">${s.subject}</div><div class="tt-kl">${s.klass}</div></td>`;
+      } else {
+        h+=`<td class="empty${clickable?' skip':''}" ${clickable?`onclick="cClick('${abbr}','${day}',${p})"`:''}>빈칸</td>`;
+      }
+    }
+    h+='</tr>';
+  }
+  return h+'</tbody></table>';
+}
+
+// ═══════════════════════════════════════════════
+// 학반별
+// ═══════════════════════════════════════════════
+function renderKlassSel(){
+  document.getElementById('kl-sel').innerHTML=D.klasses.map(k=>
+    `<div class="kc" onclick="showKlass('${k}',this)">${k}</div>`).join('');
+}
+function showKlass(klass,el){
+  document.querySelectorAll('.kc').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+  const tt=D.klassTT[klass]||{};
+  let h='<table class="tt"><thead><tr><th>요일＼교시</th>';
+  for(let p=1;p<=7;p++) h+=`<th>${p}</th>`;
+  h+='</tr></thead><tbody>';
+  for(const day of DAYS){
+    h+=`<tr><th>${day}</th>`;
+    for(let p=1;p<=7;p++){
+      const inDay=p<=MAX_P[day];
+      if(!inDay){h+=`<td class="skip">—</td>`;continue;}
+      if(day==='월'&&p===1){h+=`<td class="skip">조회</td>`;continue;}
+      const s=tt[`${day}_${p}`];
+      if(s&&!SKIP_SUBJ.has(s.subject)){
+        h+=`<td class="filled"><div class="tt-sb">${s.subject}</div><div class="tt-kl">${s.teacher}</div></td>`;
+      } else if(s){
+        h+=`<td class="skip">${s.subject}</td>`;
+      } else {
+        h+=`<td class="empty">빈칸</td>`;
+      }
+    }
+    h+='</tr>';
+  }
+  h+='</tbody></table>';
+  document.getElementById('kl-detail').innerHTML=`
+    <div style="font-size:.85rem;font-weight:700;color:var(--tx2);margin-bottom:8px">${klass} 학반</div>
+    <div class="tt-wrap">${h}</div>`;
+}
+
+// ═══════════════════════════════════════════════
+// 물레방아 탭
+// ═══════════════════════════════════════════════
+function renderCarouselList(q=''){
+  const filtered=D.teachers.filter(t=>t.abbr.includes(q));
+  document.getElementById('cs-list').innerHTML=filtered.map(t=>`
+    <div class="tc" onclick="openCarousel('${t.abbr}')">
+      <div class="tc-ab">${t.abbr}</div>
+      <div class="tc-cn">${t.count}시간</div>
+    </div>`).join('');
+}
+function filterCarousel(q){ renderCarouselList(q); }
+
+let carouselAbbr=null;
+function openCarousel(abbr){
+  carouselAbbr=abbr;
+  document.getElementById('cs-list').style.display='none';
+  document.getElementById('cs-search').style.display='none';
+  const det=document.getElementById('cs-detail');
+  det.style.display='block';
+  const map=buildMap(abbr);
+  det.innerHTML=`
+    <div class="back-row">
+      <button class="btn-back" onclick="closeCarousel()">← 목록</button>
+      <span class="back-tit">${abbr} — 이동할 칸을 클릭하세요</span>
+    </div>
+    <div class="sel-info" id="cs-sel"></div>
+    <div class="tt-wrap" id="cs-table">${buildTT(abbr,map,true,null)}</div>
+    <div id="cs-result" style="margin-top:18px"></div>`;
+}
+function closeCarousel(){
+  document.getElementById('cs-list').style.display='grid';
+  document.getElementById('cs-search').style.display='block';
+  document.getElementById('cs-detail').style.display='none';
+  carouselAbbr=null;
+}
+
+function cClick(abbr,day,period){
+  const map=buildMap(abbr);
+  document.getElementById('cs-table').innerHTML=buildTT(abbr,map,true,`${day}_${period}`);
+  const sel=document.getElementById('cs-sel');
+  sel.style.display='block';
+  sel.innerHTML=`선택: <strong>${day}요일 ${period}교시</strong> — 이 수업의 교체 경로를 탐색합니다`;
+  const chains=findCarousel(
+    (D.teacherSch[abbr]||[]).find(s=>s.day===day&&s.period===period)?.klass||'',
+    day, period
+  );
+  // klass 없이 교사 기준으로 탐색
+  const chains2 = findCarouselByTeacher(abbr, day, period);
+  document.getElementById('cs-result').innerHTML=renderChains(chains2);
+}
+
+function findCarouselByTeacher(abbr, targetDay, targetPeriod){
+  // 이 교사가 targetDay + targetPeriod에 가르치는 반 찾기
+  const mySlot=(D.teacherSch[abbr]||[]).find(s=>s.day===targetDay&&s.period===targetPeriod);
+  const targetKlass=mySlot?.klass||null;
+
+  if(!targetKlass){
+    // 빈 칸 클릭 → 이 교사가 이 요일에 가르치는 다른 반들에서 경로 탐색
+    const chains=[];
+    for(const s of (D.teacherSch[abbr]||[])){
+      if(s.day!==targetDay) continue;
+      chains.push([{step:1,teacher:abbr,klass:s.klass,day:targetDay,
+        from_period:s.period,to_period:targetPeriod,subject:s.subject}]);
+    }
+    return chains.slice(0,6);
+  }
+  return findCarousel(targetKlass, targetDay, targetPeriod);
+}
+
+// ═══════════════════════════════════════════════
+// 탭 전환
+// ═══════════════════════════════════════════════
+function go(name, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('on');
+  btn.classList.add('active');
+}
+function goTo(name){
+  const btn=[...document.querySelectorAll('.nav')].find(n=>n.textContent.includes(
+    {overview:'개요',unassigned:'미배정',carousel:'물레방아',teachers:'교사',klasses:'학반'}[name]||''
+  ));
+  go(name, btn||document.querySelector('.nav'));
+}
+</script>
+</body>
+</html>
