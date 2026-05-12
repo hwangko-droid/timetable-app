@@ -319,7 +319,36 @@ table.tt td.sel{background:var(--bdim)!important;border-color:var(--blue)!import
 // ═══════════════════════════════════════════════
 const DAYS = ['월','화','수','목','금'];
 const MAX_P = {월:7,화:7,수:6,목:7,금:7};
-const SKIP_SUBJ = new Set(['진로','동아','창체','조회']);
+const SKIP_SUBJ = new Set(['진로','동아','창체','조회','창1','창2']);
+
+// ── 과목군 분류 ──
+const SUBJ_GROUP = {
+  // 국어군
+  '국어':'KOR','국A':'KOR','국B':'KOR','국C':'KOR','국D':'KOR',
+  '문A':'KOR','문B':'KOR','문C':'KOR','독A':'KOR','독B':'KOR',
+  // 영어군
+  '영어':'ENG','영A':'ENG','영B':'ENG','영C':'ENG','영D':'ENG',
+  '영논':'ENG','심영':'ENG',
+  // 수학군
+  '수학':'MATH','수A':'MATH','수B':'MATH','수C':'MATH','수D':'MATH',
+  '확통':'MATH','경기':'MATH','미적':'MATH','기하':'MATH',
+  // 탐구군
+  '탐A':'EXP','탐B':'EXP','탐C':'EXP',
+  '탐1':'EXP','탐2':'EXP','탐3':'EXP','탐4':'EXP','탐5':'EXP',
+};
+// 위에 없는 과목 → 'ETC' (일중, 운동, 미강, 음강 등 기타끼리 교체 가능)
+
+function getGroup(subj){
+  if(!subj) return 'ETC';
+  return SUBJ_GROUP[subj.trim()] || 'ETC';
+}
+
+function isCompatible(subj1, subj2){
+  const g1=getGroup(subj1), g2=getGroup(subj2);
+  if(g1==='ETC' && g2==='ETC') return true;  // 기타끼리 교체 가능
+  if(g1==='ETC' || g2==='ETC') return false; // 기타 ↔ 주요과목 불가
+  return g1===g2;  // 같은 군끼리만 교체 가능
+}
 
 // 컬럼 인덱스 → {day, period}
 const COL_MAP = {};
@@ -459,7 +488,8 @@ function diagnoseAll(){
     }
 
     const chains = findCarousel(klass, day, period);
-    return {...u, sameTime, emptyPartners, reasons, chains};
+    const needGroup = chains.length>0 ? (chains[0][0].need||null) : inferNeededSubject(klass,day,period);
+    return {...u, sameTime, emptyPartners, reasons, chains, needGroup};
   });
 }
 
@@ -467,54 +497,84 @@ function findCarousel(targetKlass, targetDay, targetPeriod){
   const grade = targetKlass.split('-')[0];
   const chains = [];
 
+  // 이 빈칸에 들어와야 할 과목 파악
+  // → 같은 교사가 같은 학반에서 가르치는 다른 교시 과목 참고
+  // → 또는 같은 학년 다른 반에서 같은 교시에 배정된 과목군 참고
+  const targetNeedSubj = inferNeededSubject(targetKlass, targetDay, targetPeriod);
+
   // 같은 학년 교사별 해당 요일 배정 맵
   const tdMap = {}; // abbr → {period: slot}
   for(const [abbr, slots] of Object.entries(D.teacherSch)){
     for(const s of slots){
       if(s.day===targetDay && s.klass.split('-')[0]===grade){
-        if(!tdMap[abbr]) tdMap[abbr]={}; 
+        if(!tdMap[abbr]) tdMap[abbr]={};
         tdMap[abbr][s.period]=s;
       }
     }
   }
 
   for(const teacher of Object.keys(tdMap).sort()){
-    // target_period에 이미 수업 있으면 skip
-    if(tdMap[teacher][targetPeriod]) continue;
+    if(tdMap[teacher][targetPeriod]) continue; // 이미 target_period에 수업 있음
 
-    // 1단계: 이 교사가 targetKlass를 다른 교시에 가르치면 이동 가능
+    // 1단계: 이 교사가 targetKlass를 다른 교시에 가르치는 수업 이동
     for(const [fp, slot] of Object.entries(tdMap[teacher])){
-      if(slot.klass===targetKlass){
-        chains.push([{step:1,teacher,klass:targetKlass,day:targetDay,
-          from_period:parseInt(fp),to_period:targetPeriod,subject:slot.subject}]);
-      }
+      if(slot.klass!==targetKlass) continue;
+      // 과목 호환성 체크: 옮길 과목이 빈칸에 필요한 과목군과 맞는지
+      if(targetNeedSubj && !isCompatible(slot.subject, targetNeedSubj)) continue;
+      chains.push([{step:1,teacher,klass:targetKlass,day:targetDay,
+        from_period:parseInt(fp),to_period:targetPeriod,
+        subject:slot.subject, need:targetNeedSubj}]);
     }
 
-    // 2단계: 이 교사가 다른 반의 수업을 옮기면 그 자리에 다른 교사가 들어오는 구조
+    // 2단계: 연쇄 교체 (A교사 X교시→target / B교사 target→X교시)
     for(const [fp, slot] of Object.entries(tdMap[teacher])){
       const otherKlass = slot.klass;
       const otherSlot = D.klassTT[otherKlass]?.[`${targetDay}_${targetPeriod}`];
       if(!otherSlot || !otherSlot.teacher) continue;
       const otherTeacher = otherSlot.teacher;
       if(otherTeacher===teacher) continue;
-      if(tdMap[otherTeacher]?.[parseInt(fp)]) continue; // other도 그 교시에 수업 있으면 skip
+      if(tdMap[otherTeacher]?.[parseInt(fp)]) continue;
+
+      // 호환성 체크: 두 과목이 서로 교체 가능한지
+      if(!isCompatible(slot.subject, otherSlot.subject)) continue;
+      // 빈칸에 필요한 과목군과 맞는지
+      if(targetNeedSubj && !isCompatible(slot.subject, targetNeedSubj)) continue;
+
       chains.push([
         {step:1,teacher,klass:otherKlass,day:targetDay,
-          from_period:parseInt(fp),to_period:targetPeriod,subject:slot.subject},
+          from_period:parseInt(fp),to_period:targetPeriod,
+          subject:slot.subject, need:targetNeedSubj},
         {step:2,teacher:otherTeacher,klass:otherKlass,day:targetDay,
-          from_period:targetPeriod,to_period:parseInt(fp),subject:otherSlot.subject},
+          from_period:targetPeriod,to_period:parseInt(fp),
+          subject:otherSlot.subject},
       ]);
     }
   }
 
-  // 중복 제거 + 단계순 정렬
   const seen = new Set();
   return chains
     .sort((a,b)=>a.length-b.length)
     .filter(c=>{
-      const key = JSON.stringify(c.map(s=>[s.teacher,s.from_period,s.to_period]));
+      const key=JSON.stringify(c.map(s=>[s.teacher,s.from_period,s.to_period]));
       if(seen.has(key)) return false; seen.add(key); return true;
-    }).slice(0,6);
+    }).slice(0,8);
+}
+
+function inferNeededSubject(klass, day, period){
+  // 같은 학년 다른 반의 같은 요일+교시에 배정된 과목군으로 추론
+  const grade = klass.split('-')[0];
+  const subjCounts = {};
+  for(const k of D.klasses){
+    if(k===klass || k.split('-')[0]!==grade) continue;
+    const s = D.klassTT[k]?.[`${day}_${period}`];
+    if(s && !SKIP_SUBJ.has(s.subject)){
+      const g = getGroup(s.subject);
+      subjCounts[g] = (subjCounts[g]||0)+1;
+    }
+  }
+  // 가장 많이 나오는 과목군 반환
+  const top = Object.entries(subjCounts).sort((a,b)=>b[1]-a[1])[0];
+  return top ? top[0] : null; // 과목군 코드 반환 (KOR/ENG/MATH/EXP/ETC)
 }
 
 // ═══════════════════════════════════════════════
@@ -606,7 +666,7 @@ function renderUnassigned(){
         </div>
         <div class="ds">
           <div class="ds-lbl">물레방아 교체 경로 (${d.chains.length}개)</div>
-          ${renderChains(d.chains)}
+          ${renderChains(d.chains, d.needGroup)}
         </div>
       </div>
     </div>`).join('');
@@ -617,9 +677,13 @@ function toggleUA(i){
   document.getElementById('arr-'+i).classList.toggle('open');
 }
 
-function renderChains(chains){
-  if(!chains.length) return '<p class="no-chain">자동 탐색된 경로가 없습니다. 수동 조정이 필요합니다.</p>';
-  return '<div class="chain-list">'+chains.map((c,i)=>`
+const GROUP_NAME = {KOR:'국어군',ENG:'영어군',MATH:'수학군',EXP:'탐구군',ETC:'기타군'};
+
+function renderChains(chains, needGroup){
+  if(!chains.length) return '<p class="no-chain">이 과목군에 해당하는 교체 경로가 없습니다. 수동 조정이 필요합니다.</p>';
+  const needLabel = needGroup ? `<div style="font-size:.72rem;color:var(--yel);margin-bottom:10px;font-family:var(--mono)">
+    ⚡ 필요 과목군: <strong>${GROUP_NAME[needGroup]||needGroup}</strong> 교사만 교체 가능</div>` : '';
+  return needLabel+'<div class="chain-list">'+chains.map((c,i)=>`
     <div class="chain">
       <div class="chain-meta">${i+1}번 경로 — ${c.length}단계 교체</div>
       <div class="chain-steps">
@@ -786,7 +850,9 @@ function cClick(abbr,day,period){
   );
   // klass 없이 교사 기준으로 탐색
   const chains2 = findCarouselByTeacher(abbr, day, period);
-  document.getElementById('cs-result').innerHTML=renderChains(chains2);
+  document.getElementById('cs-result').innerHTML=renderChains(chains2, inferNeededSubject(
+    (D.teacherSch[abbr]||[]).find(s=>s.day===day&&s.period===period)?.klass||'', day, period
+  ));
 }
 
 function findCarouselByTeacher(abbr, targetDay, targetPeriod){
