@@ -752,45 +752,77 @@ function findCarouselWithGroup(targetKlass, targetDay, targetPeriod, targetGroup
   const grade = targetKlass.split('-')[0];
   const chains = [];
 
-  const tdMap = {};
+  // ── 전체 교사 스케줄 맵 (모든 요일) ──
+  // teacher → { 'day_period': [슬롯들] }
+  const fullMap = {};
   for(const [abbr, slots] of Object.entries(D.teacherSch)){
+    if(!fullMap[abbr]) fullMap[abbr] = {};
     for(const s of slots){
-      if(s.day===targetDay && s.klass.split('-')[0]===grade){
-        if(!tdMap[abbr]) tdMap[abbr]={};
-        tdMap[abbr][s.period]=s;
-      }
+      if(s.klass.split('-')[0] !== grade) continue;
+      const key = `${s.day}_${s.period}`;
+      if(!fullMap[abbr][key]) fullMap[abbr][key] = [];
+      fullMap[abbr][key].push(s);
     }
   }
 
-  for(const teacher of Object.keys(tdMap).sort()){
-    if(tdMap[teacher][targetPeriod]) continue;
+  // target 교사 탐색: targetKlass를 가르치는 교사 중
+  // targetDay+targetPeriod가 비어있는 교사
+  for(const [teacher, dayMap] of Object.entries(fullMap)){
+    // targetDay+targetPeriod에 이미 수업 있으면 skip
+    if(dayMap[`${targetDay}_${targetPeriod}`]) continue;
 
-    // 1단계: 이 교사가 targetKlass를 다른 교시에 가르치는 수업
-    for(const [fp, slot] of Object.entries(tdMap[teacher])){
-      if(slot.klass !== targetKlass) continue;
-      // 과목군 체크: 입력한 과목군과 같아야 함
-      if(targetGroup && targetGroup!=='ETC' && getGroup(slot.subject)!==targetGroup) continue;
-      chains.push([{step:1,teacher,klass:targetKlass,day:targetDay,
-        from_period:parseInt(fp),to_period:targetPeriod,subject:slot.subject}]);
+    // ── 1단계: 이 교사가 targetKlass를 가르치는 수업을 targetDay+targetPeriod로 이동 ──
+    for(const [dpKey, slots] of Object.entries(dayMap)){
+      for(const slot of slots){
+        if(slot.klass !== targetKlass) continue;
+        if(targetGroup && targetGroup!=='ETC' && getGroup(slot.subject)!==targetGroup) continue;
+
+        const [fromDay, fromPeriod] = dpKey.split('_');
+
+        // targetDay의 targetPeriod로 이동 가능한지 확인
+        // (fromDay → targetDay 이동이므로 targetKlass의 targetDay+targetPeriod가 비어있어야 함)
+        const klassSlot = D.klassTT[targetKlass]?.[`${targetDay}_${targetPeriod}`];
+        if(klassSlot) continue; // 이미 다른 수업 있음
+
+        chains.push([{
+          step:1, teacher, klass:targetKlass,
+          from_day:fromDay, from_period:parseInt(fromPeriod),
+          to_day:targetDay, to_period:targetPeriod,
+          subject:slot.subject,
+          note:`${teacher}: ${targetKlass} ${fromDay}${fromPeriod}교시→${targetDay}${targetPeriod}교시`
+        }]);
+      }
     }
 
-    // 2단계: 연쇄 교체
-    for(const [fp, slot] of Object.entries(tdMap[teacher])){
-      if(targetGroup && targetGroup!=='ETC' && getGroup(slot.subject)!==targetGroup) continue;
-      const otherKlass = slot.klass;
-      const otherSlot = D.klassTT[otherKlass]?.[`${targetDay}_${targetPeriod}`];
-      if(!otherSlot || !otherSlot.teacher) continue;
-      const otherTeacher = otherSlot.teacher;
-      if(otherTeacher===teacher) continue;
-      if(tdMap[otherTeacher]?.[parseInt(fp)]) continue;
-      if(!isCompatible(slot.subject, otherSlot.subject)) continue;
+    // ── 2단계: 연쇄 교체 (같은 요일 기준) ──
+    const tdSlots = Object.entries(dayMap).filter(([k]) => k.startsWith(targetDay+'_'));
+    for(const [fp_key, slots] of tdSlots){
+      const fp = parseInt(fp_key.split('_')[1]);
+      for(const slot of slots){
+        if(targetGroup && targetGroup!=='ETC' && getGroup(slot.subject)!==targetGroup) continue;
 
-      chains.push([
-        {step:1,teacher,klass:otherKlass,day:targetDay,
-          from_period:parseInt(fp),to_period:targetPeriod,subject:slot.subject},
-        {step:2,teacher:otherTeacher,klass:otherKlass,day:targetDay,
-          from_period:targetPeriod,to_period:parseInt(fp),subject:otherSlot.subject},
-      ]);
+        const otherKlass = slot.klass;
+        const otherSlot = D.klassTT[otherKlass]?.[`${targetDay}_${targetPeriod}`];
+        if(!otherSlot || !otherSlot.teacher) continue;
+
+        const otherTeacher = otherSlot.teacher;
+        if(otherTeacher===teacher) continue;
+        if(fullMap[otherTeacher]?.[`${targetDay}_${fp}`]) continue;
+        if(!isCompatible(slot.subject, otherSlot.subject)) continue;
+
+        chains.push([
+          {step:1, teacher, klass:otherKlass,
+            from_day:targetDay, from_period:fp,
+            to_day:targetDay, to_period:targetPeriod,
+            subject:slot.subject,
+            note:`${teacher}: ${otherKlass} ${targetDay}${fp}→${targetPeriod}교시`},
+          {step:2, teacher:otherTeacher, klass:otherKlass,
+            from_day:targetDay, from_period:targetPeriod,
+            to_day:targetDay, to_period:fp,
+            subject:otherSlot.subject,
+            note:`${otherTeacher}: ${otherKlass} ${targetDay}${targetPeriod}→${fp}교시`},
+        ]);
+      }
     }
   }
 
@@ -798,7 +830,7 @@ function findCarouselWithGroup(targetKlass, targetDay, targetPeriod, targetGroup
   return chains
     .sort((a,b)=>a.length-b.length)
     .filter(c=>{
-      const key=JSON.stringify(c.map(s=>[s.teacher,s.from_period,s.to_period]));
+      const key=JSON.stringify(c.map(s=>[s.teacher,s.from_day,s.from_period,s.to_day,s.to_period,s.klass]));
       if(seen.has(key)) return false; seen.add(key); return true;
     }).slice(0,8);
 }
@@ -823,8 +855,11 @@ function renderChains(chains, needGroup){
           <div class="stch">${s.teacher}</div>
           <div class="sarr">·</div>
           <div class="sdet">
-            ${s.klass} ${s.day}요일
-            <span class="smv">${s.from_period}교시→${s.to_period}교시</span>
+            ${s.klass}
+            <span class="smv">
+              ${s.from_day||s.day}요일 ${s.from_period}교시
+              → ${s.to_day||s.day}요일 ${s.to_period}교시
+            </span>
             <span style="color:var(--tx3);font-size:.72rem">(${s.subject})</span>
           </div>
         </div>`).join('')}
