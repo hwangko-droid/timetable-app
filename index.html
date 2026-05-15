@@ -420,45 +420,72 @@ function generateSuggestions(){
   D.suggestions=[];
   if(D.unassigned.length===0) return;
 
-  // 미배정된 반들의 학년 목록
   const uaGrades=[...new Set(D.unassigned.map(u=>u.klass.split('-')[0]))];
 
-  // 각 학년별, 과목군별 교사 목록과 담당 반
+  // 미배정 반 학년별 정리
+  const uaByGrade={};
+  for(const u of D.unassigned){
+    const g=u.klass.split('-')[0];
+    if(!uaByGrade[g]) uaByGrade[g]=[];
+    if(!uaByGrade[g].includes(u.klass)) uaByGrade[g].push(u.klass);
+  }
+
+  // 교사별 담당 과목+반 수집
+  function getTeacherKlasses(grade, groupFilter){
+    const result={};
+    for(const[abbr,slots]of Object.entries(D.teacherSch)){
+      const filtered=slots.filter(s=>{
+        if(!s.klass.startsWith(grade+'-')) return false;
+        const g=getGroup(s.subject);
+        if(groupFilter==='ETC') return g==='ETC';
+        return g===groupFilter;
+      });
+      const klasses=[...new Set(filtered.map(s=>s.klass))].sort();
+      const subjects=[...new Set(filtered.map(s=>s.subject))];
+      if(klasses.length>0) result[abbr]={klasses,subjects};
+    }
+    return result;
+  }
+
+  function makePairs(teachersInGrade){
+    const teacherList=Object.keys(teachersInGrade);
+    const pairs=[];
+    for(let i=0;i<teacherList.length;i++){
+      for(let j=i+1;j<teacherList.length;j++){
+        const t1=teacherList[i], t2=teacherList[j];
+        const k1=teachersInGrade[t1].klasses;
+        const k2=teachersInGrade[t2].klasses;
+        const swapPairs=[];
+        for(const kk1 of k1)
+          for(const kk2 of k2)
+            if(kk1!==kk2) swapPairs.push([kk1,kk2]);
+        if(swapPairs.length>0)
+          pairs.push({t1,t2,
+            k1,k2,
+            s1:teachersInGrade[t1].subjects,
+            s2:teachersInGrade[t2].subjects,
+            swapPairs});
+      }
+    }
+    return pairs;
+  }
+
   for(const grade of uaGrades){
+    // ── 1순위: 기타과목 (영논, 한문, 태권 등 이동수업 묶음 무관) ──
+    const etcTeachers=getTeacherKlasses(grade,'ETC');
+    const etcPairs=makePairs(etcTeachers);
+    if(etcPairs.length>0){
+      D.suggestions.push({grade,group:'ETC',label:'기타과목',
+        priority:1,pairs:etcPairs,uaKlasses:uaByGrade[grade]||[]});
+    }
+
+    // ── 2순위: 국영수 ──
     for(const group of ['KOR','ENG','MATH']){
-      // 이 학년에서 이 과목군을 담당하는 교사들
-      const teachersInGrade={};
-      for(const[abbr,slots]of Object.entries(D.teacherSch)){
-        const klasses=[...new Set(slots
-          .filter(s=>s.klass.startsWith(grade+'-')&&getGroup(s.subject)===group)
-          .map(s=>s.klass))];
-        if(klasses.length>0) teachersInGrade[abbr]=klasses.sort();
-      }
-
-      const teacherList=Object.keys(teachersInGrade);
-      if(teacherList.length<2) continue;
-
-      // 교사쌍 생성
-      const pairs=[];
-      for(let i=0;i<teacherList.length;i++){
-        for(let j=i+1;j<teacherList.length;j++){
-          const t1=teacherList[i], t2=teacherList[j];
-          const k1=teachersInGrade[t1], k2=teachersInGrade[t2];
-          // 교환 가능한 반 쌍 찾기 (t1이 가진 반 ↔ t2가 가진 반)
-          const swapPairs=[];
-          for(const kk1 of k1){
-            for(const kk2 of k2){
-              if(kk1!==kk2) swapPairs.push([kk1,kk2]);
-            }
-          }
-          if(swapPairs.length>0){
-            pairs.push({t1,t2,k1,k2,swapPairs});
-          }
-        }
-      }
-
+      const teachers=getTeacherKlasses(grade,group);
+      const pairs=makePairs(teachers);
       if(pairs.length>0){
-        D.suggestions.push({grade,group,pairs,teachersInGrade});
+        D.suggestions.push({grade,group,label:GROUP_NAME[group]||group,
+          priority:2,pairs,uaKlasses:uaByGrade[grade]||[]});
       }
     }
   }
@@ -557,47 +584,52 @@ function renderSuggestions(){
     return;
   }
 
-  // 미배정 반 학년별 정리
-  const uaByGrade={};
-  for(const u of D.unassigned){
-    const g=u.klass.split('-')[0];
-    if(!uaByGrade[g]) uaByGrade[g]=[];
-    uaByGrade[g].push(u.klass);
-  }
-
   el.innerHTML=D.suggestions.map(sg=>{
-    const uaKlasses=uaByGrade[sg.grade]||[];
+    const isPriority1=sg.priority===1;
     return `<div class="pair-card">
-      <div class="pair-hd">
+      <div class="pair-hd" style="${isPriority1?'background:#1a2a1a;border-bottom:1px solid #2d6b4a':''}">
+        ${isPriority1?
+          `<span style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--grn);
+            background:#0a1f0a;border:1px solid var(--grn);border-radius:5px;padding:2px 8px">
+            ★ 1순위</span>`:
+          `<span style="font-family:var(--mono);font-size:.72rem;color:var(--tx3);
+            background:var(--sur2);border-radius:5px;padding:2px 8px">2순위</span>`}
         <span class="pair-grade">${sg.grade}학년</span>
-        <span class="pair-group">${GROUP_NAME[sg.group]||sg.group}군</span>
+        <span class="pair-group">${sg.label}군</span>
         <span style="font-size:.8rem;color:var(--tx2);margin-left:4px">
-          — 미배정 반: <strong style="color:var(--yel)">${[...new Set(uaKlasses)].join(', ')}</strong>
+          — 미배정 반: <strong style="color:var(--yel)">${sg.uaKlasses.join(', ')}</strong>
         </span>
         <span style="margin-left:auto;font-size:.72rem;color:var(--tx3)">${sg.pairs.length}쌍</span>
       </div>
       <div class="pair-bd">
         <div style="font-size:.75rem;color:var(--tx3);margin-bottom:10px">
-          아래 교사쌍 중 한 쌍의 담당 반을 바꿔서 압핀 자동배정을 다시 시도해보세요
+          ${isPriority1?
+            '이동수업 묶음과 무관한 과목이라 교체가 자유롭습니다. 먼저 이 쌍들을 시도해보세요.':
+            '국영수 이동수업 교사쌍입니다. 1순위로 해결이 안 될 때 시도해보세요.'}
         </div>
         ${sg.pairs.map(p=>`
           <div class="pair-row">
             <div class="pair-teachers">
               <div>
-                <div><span class="pt">${p.t1}</span> <span class="pk">(${p.k1.join(', ')})</span></div>
+                <span class="pt">${p.t1}</span>
+                <span class="pk">(${p.k1.join(', ')})</span>
+                <span style="font-size:.68rem;color:var(--tx3)"> ${p.s1.slice(0,2).join('·')}</span>
               </div>
               <div class="swap-icon">⇄</div>
               <div>
-                <div><span class="pt">${p.t2}</span> <span class="pk">(${p.k2.join(', ')})</span></div>
+                <span class="pt">${p.t2}</span>
+                <span class="pk">(${p.k2.join(', ')})</span>
+                <span style="font-size:.68rem;color:var(--tx3)"> ${p.s2.slice(0,2).join('·')}</span>
               </div>
             </div>
-            <span class="pair-count">${p.swapPairs.length}가지 조합</span>
+            <span class="pair-count">${p.swapPairs.length}가지</span>
           </div>
           <div class="pair-note" style="margin:-4px 0 8px 13px">
-            교환 가능 조합:
-            ${p.swapPairs.slice(0,6).map(([a,b])=>`<span style="font-family:var(--mono);font-size:.7rem;
-              background:var(--sur2);border-radius:3px;padding:1px 6px;margin:1px">${p.t1}(${a})↔${p.t2}(${b})</span>`).join('')}
-            ${p.swapPairs.length>6?`<span style="font-size:.7rem;color:var(--tx3)">+${p.swapPairs.length-6}개 더</span>`:''}
+            ${p.swapPairs.slice(0,5).map(([a,b])=>`
+              <span style="font-family:var(--mono);font-size:.7rem;
+                background:var(--sur2);border-radius:3px;padding:1px 6px;margin:1px">
+                ${p.t1}(${a})↔${p.t2}(${b})</span>`).join('')}
+            ${p.swapPairs.length>5?`<span style="font-size:.7rem;color:var(--tx3)">+${p.swapPairs.length-5}개 더</span>`:''}
           </div>`).join('')}
       </div>
     </div>`;
