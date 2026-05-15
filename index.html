@@ -453,6 +453,11 @@ function generateSuggestions(){
     for(let i=0;i<teacherList.length;i++){
       for(let j=i+1;j<teacherList.length;j++){
         const t1=teacherList[i], t2=teacherList[j];
+        const s1=new Set(teachersInGrade[t1].subjects);
+        const s2=new Set(teachersInGrade[t2].subjects);
+        // 공통 과목이 있어야만 교환 가능
+        const commonSubjects=[...s1].filter(s=>s2.has(s));
+        if(commonSubjects.length===0) continue;
         const k1=teachersInGrade[t1].klasses;
         const k2=teachersInGrade[t2].klasses;
         const swapPairs=[];
@@ -464,6 +469,7 @@ function generateSuggestions(){
             k1,k2,
             s1:teachersInGrade[t1].subjects,
             s2:teachersInGrade[t2].subjects,
+            commonSubjects,
             swapPairs});
       }
     }
@@ -613,15 +619,17 @@ function renderSuggestions(){
               <div>
                 <span class="pt">${p.t1}</span>
                 <span class="pk">(${p.k1.join(', ')})</span>
-                <span style="font-size:.68rem;color:var(--tx3)"> ${p.s1.slice(0,2).join('·')}</span>
               </div>
               <div class="swap-icon">⇄</div>
               <div>
                 <span class="pt">${p.t2}</span>
                 <span class="pk">(${p.k2.join(', ')})</span>
-                <span style="font-size:.68rem;color:var(--tx3)"> ${p.s2.slice(0,2).join('·')}</span>
               </div>
             </div>
+            <span style="font-size:.68rem;color:var(--grn);font-family:var(--mono);
+              background:var(--gdim);border-radius:4px;padding:2px 7px;white-space:nowrap">
+              ${p.commonSubjects.join('·')}
+            </span>
             <span class="pair-count">${p.swapPairs.length}가지</span>
           </div>
           <div class="pair-note" style="margin:-4px 0 8px 13px">
