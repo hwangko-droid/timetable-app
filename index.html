@@ -24,26 +24,42 @@ header{background:var(--sur);border-bottom:1px solid var(--bor);padding:0 24px;
 .logo-sub{font-size:.65rem;color:var(--tx2);margin-top:1px}
 .hbadge{font-family:var(--mono);font-size:.65rem;color:var(--blue);
   border:1px solid var(--bdim);border-radius:4px;padding:2px 9px;background:#0d1f3c}
-
-/* 업로드 */
 #up-screen{display:flex;align-items:center;justify-content:center;
   min-height:calc(100vh - 54px);padding:24px}
-.up-wrap{max-width:680px;width:100%}
+.up-wrap{max-width:700px;width:100%}
 .up-title{font-size:1.4rem;font-weight:900;margin-bottom:6px;text-align:center}
-.up-sub{font-size:.85rem;color:var(--tx2);text-align:center;margin-bottom:28px}
-.up-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
-.upbox{background:var(--sur);border:2px dashed var(--bor);border-radius:12px;
-  padding:28px 20px;text-align:center;cursor:pointer;transition:.2s}
-.upbox:hover,.upbox.drag{border-color:var(--blue);background:#0d1f3c}
-.upbox.done{border-color:var(--grn);border-style:solid}
-.upbox input{display:none}
-.upbox .ico{font-size:2rem;margin-bottom:8px}
-.upbox .tit{font-size:.9rem;font-weight:700;margin-bottom:4px}
-.upbox .desc{font-size:.75rem;color:var(--tx2);line-height:1.5}
-.upbox .fname{font-size:.7rem;color:var(--grn);margin-top:6px;font-family:var(--mono);
-  word-break:break-all}
+.up-sub{font-size:.85rem;color:var(--tx2);text-align:center;margin-bottom:24px}
+
+/* 교과배당표 업로드 영역 */
+.assign-area{background:var(--sur);border:1px solid var(--bor);border-radius:12px;
+  padding:18px;margin-bottom:14px}
+.assign-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.assign-title{font-size:.9rem;font-weight:700}
+.btn-add{background:var(--bdim);color:var(--blue);border:1px solid var(--blue);
+  border-radius:7px;padding:6px 14px;font-size:.8rem;cursor:pointer;font-family:inherit;transition:.15s}
+.btn-add:hover{background:var(--blue);color:#fff}
+.file-list{display:flex;flex-direction:column;gap:6px;min-height:36px}
+.file-item{display:flex;align-items:center;gap:8px;padding:7px 12px;
+  background:var(--sur2);border-radius:7px;font-size:.8rem}
+.file-item .fname{flex:1;font-family:var(--mono);color:var(--grn);font-size:.75rem}
+.file-item .del{background:none;border:none;color:var(--tx3);cursor:pointer;
+  font-size:.9rem;padding:0 4px;transition:.15s}
+.file-item .del:hover{color:var(--red)}
+.file-empty{color:var(--tx3);font-size:.78rem;padding:6px;text-align:center}
+
+/* 시간표 업로드 */
+.tt-area{background:var(--sur);border:2px dashed var(--bor);border-radius:12px;
+  padding:20px;text-align:center;cursor:pointer;transition:.2s;margin-bottom:14px}
+.tt-area:hover,.tt-area.drag{border-color:var(--blue);background:#0d1f3c}
+.tt-area.done{border-color:var(--grn);border-style:solid}
+.tt-area input{display:none}
+.tt-area .ico{font-size:1.8rem;margin-bottom:6px}
+.tt-area .tit{font-size:.88rem;font-weight:700;margin-bottom:3px}
+.tt-area .desc{font-size:.74rem;color:var(--tx2)}
+.tt-area .fname{font-size:.7rem;color:var(--grn);margin-top:5px;font-family:var(--mono)}
+
 .btn-start{width:100%;background:var(--blue);color:#fff;border:none;border-radius:10px;
-  padding:14px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;
+  padding:13px;font-size:.98rem;font-weight:700;cursor:pointer;font-family:inherit;
   transition:.2s;opacity:.4;pointer-events:none}
 .btn-start.ready{opacity:1;pointer-events:auto}
 .btn-start.ready:hover{background:#3a7af0}
@@ -71,94 +87,85 @@ header{background:var(--sur);border-bottom:1px solid var(--bor);padding:0 24px;
 .page{display:none}.page.on{display:block}
 .ptit{font-size:1.15rem;font-weight:900;margin-bottom:4px}
 .psub{font-size:.78rem;color:var(--tx2);margin-bottom:20px}
-
-/* 통계 */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}
 .sc{background:var(--sur);border:1px solid var(--bor);border-radius:9px;padding:14px}
 .sc .n{font-size:1.8rem;font-weight:900;font-family:var(--mono)}
 .sc .l{font-size:.7rem;color:var(--tx2);margin-top:3px}
 .sc.r{border-color:var(--red)}.sc.r .n{color:var(--red)}
 .sc.g .n{color:var(--grn)}.sc.b .n{color:var(--blue)}
-
-/* 미배정 카드 */
-.ua-list{display:flex;flex-direction:column;gap:12px}
-.ua-card{background:var(--sur);border:1px solid var(--bor);border-radius:11px;overflow:hidden;margin-bottom:12px}
-.ua-hd{display:flex;align-items:center;gap:10px;padding:13px 16px;
+.ua-list{display:flex;flex-direction:column;gap:10px}
+.ua-card{background:var(--sur);border:1px solid var(--bor);border-radius:11px;overflow:hidden}
+.ua-hd{display:flex;align-items:center;gap:10px;padding:12px 15px;
   background:var(--rdim);border-bottom:1px solid #6b1a1a;cursor:pointer}
 .ua-hd:hover{background:#5a1515}
-.ua-tag{font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--red);
-  background:#4a1a1a;border:1px solid var(--red);border-radius:5px;padding:2px 8px}
-.ua-title{font-size:.88rem;font-weight:700;flex:1}
-.ua-arrow{color:var(--tx3);transition:.2s;font-size:.75rem}
+.ua-tag{font-family:var(--mono);font-size:.7rem;font-weight:700;color:var(--red);
+  background:#4a1a1a;border:1px solid var(--red);border-radius:5px;padding:2px 7px}
+.ua-title{font-size:.85rem;font-weight:700;flex:1}
+.ua-arrow{color:var(--tx3);transition:.2s;font-size:.72rem}
 .ua-arrow.open{transform:rotate(180deg)}
-.ua-bd{padding:16px;display:none}.ua-bd.open{display:block}
-.ds{margin-bottom:16px}
-.ds-lbl{font-size:.65rem;font-weight:700;color:var(--tx3);letter-spacing:1px;
-  text-transform:uppercase;margin-bottom:7px}
-.reason{display:flex;gap:8px;padding:8px 12px;background:var(--sur2);
-  border-radius:7px;margin-bottom:5px;font-size:.82rem;line-height:1.6}
+.ua-bd{padding:15px;display:none}.ua-bd.open{display:block}
+.ds{margin-bottom:14px}
+.ds-lbl{font-size:.63rem;font-weight:700;color:var(--tx3);letter-spacing:1px;
+  text-transform:uppercase;margin-bottom:6px}
+.reason{display:flex;gap:8px;padding:8px 11px;background:var(--sur2);
+  border-radius:7px;margin-bottom:4px;font-size:.8rem;line-height:1.6}
 .reason .bul{color:var(--yel);font-weight:700;flex-shrink:0}
-
-/* 학반 변경 제안 */
+.slot-chip{display:inline-block;background:var(--gdim);border:1px solid var(--grn);
+  border-radius:5px;padding:2px 8px;font-size:.72rem;font-family:var(--mono);
+  color:var(--grn);margin:2px}
+.block-chip{display:inline-block;background:var(--rdim);border:1px solid var(--red);
+  border-radius:5px;padding:2px 8px;font-size:.72rem;font-family:var(--mono);
+  color:var(--red);margin:2px}
 .swap-box{background:#1a2a1a;border:1px solid var(--grn);border-radius:8px;
-  padding:12px 14px;margin-bottom:10px}
-.swap-lbl{font-size:.68rem;font-weight:700;color:var(--grn);letter-spacing:.5px;margin-bottom:8px}
-.swap-row{display:flex;align-items:center;gap:8px;font-size:.82rem;margin-bottom:5px}
-.swap-teacher{color:var(--tx2);min-width:70px}
+  padding:11px 13px;margin-bottom:9px}
+.swap-lbl{font-size:.66rem;font-weight:700;color:var(--grn);letter-spacing:.5px;margin-bottom:7px}
+.swap-row{display:flex;align-items:center;gap:8px;font-size:.8rem;margin-bottom:4px}
+.swap-teacher{color:var(--tx2);min-width:60px}
 .swap-from{color:var(--red);font-family:var(--mono);font-weight:700}
 .swap-arr{color:var(--tx3)}
 .swap-to{color:var(--grn);font-family:var(--mono);font-weight:700}
-.swap-note{font-size:.73rem;color:var(--tx3);margin-top:4px}
-
-/* 교사 그리드 */
+.swap-note{font-size:.7rem;color:var(--tx3);margin-top:3px}
 .searchbar{width:100%;background:var(--sur);border:1px solid var(--bor);
   border-radius:8px;padding:9px 13px;font-size:.85rem;color:var(--txt);
   font-family:inherit;margin-bottom:13px;outline:none}
 .searchbar:focus{border-color:var(--blue)}
 .searchbar::placeholder{color:var(--tx3)}
-.tc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.tc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
 .tc{background:var(--sur);border:1px solid var(--bor);border-radius:9px;
   padding:12px;cursor:pointer;transition:.15s}
 .tc:hover{border-color:var(--blue);background:var(--sur2)}
-.tc-ab{font-family:var(--mono);font-size:.95rem;font-weight:700;color:var(--blue)}
-.tc-cn{font-size:.73rem;color:var(--tx2);margin-top:3px}
+.tc-ab{font-family:var(--mono);font-size:.93rem;font-weight:700;color:var(--blue)}
+.tc-cn{font-size:.72rem;color:var(--tx2);margin-top:3px}
 .tc-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
-.tag{font-size:.63rem;padding:2px 6px;border-radius:4px;font-weight:700;
+.tag{font-size:.62rem;padding:2px 6px;border-radius:4px;font-weight:700;
   background:var(--bdim);color:var(--blue)}
 .tag-r{background:var(--rdim);color:var(--red)}
-
-/* 학반 */
 .kl-sel{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px}
-.kc{font-family:var(--mono);font-size:.75rem;padding:5px 12px;border-radius:5px;
+.kc{font-family:var(--mono);font-size:.73rem;padding:5px 11px;border-radius:5px;
   border:1px solid var(--bor);cursor:pointer;background:var(--sur);
   color:var(--tx2);transition:.15s}
 .kc:hover,.kc.on{border-color:var(--blue);color:var(--blue);background:var(--bdim)}
-
-/* 시간표 */
 .tt-wrap{overflow-x:auto;margin-top:8px}
-table.tt{width:100%;border-collapse:collapse;font-size:.77rem;min-width:440px;font-family:var(--mono)}
+table.tt{width:100%;border-collapse:collapse;font-size:.76rem;min-width:440px;font-family:var(--mono)}
 table.tt th{background:var(--sur2);color:var(--tx2);padding:7px 4px;text-align:center;
-  font-size:.68rem;border:1px solid var(--bor);font-weight:700}
+  font-size:.67rem;border:1px solid var(--bor);font-weight:700}
 table.tt td{border:1px solid var(--bor);padding:7px 5px;text-align:center;
-  min-width:60px;vertical-align:middle}
+  min-width:58px;vertical-align:middle}
 table.tt td.filled{background:#0d1f3c}
-table.tt td.empty{background:var(--rdim);color:var(--red);font-size:.67rem}
-table.tt td.skip{background:var(--sur2);color:var(--tx3);font-size:.65rem}
-.tt-sb{font-weight:700;color:var(--txt);font-size:.75rem}
-.tt-kl{font-size:.65rem;color:var(--blue);margin-top:2px}
+table.tt td.empty{background:var(--rdim);color:var(--red);font-size:.66rem}
+table.tt td.skip{background:var(--sur2);color:var(--tx3);font-size:.64rem}
+.tt-sb{font-weight:700;color:var(--txt);font-size:.74rem}
+.tt-kl{font-size:.64rem;color:var(--blue);margin-top:2px}
 .back-row{display:flex;align-items:center;gap:10px;margin-bottom:13px}
 .btn-back{background:var(--sur2);border:1px solid var(--bor);border-radius:6px;
-  padding:5px 13px;color:var(--tx2);cursor:pointer;font-family:inherit;font-size:.78rem}
+  padding:5px 12px;color:var(--tx2);cursor:pointer;font-family:inherit;font-size:.77rem}
 .btn-back:hover{border-color:var(--blue);color:var(--blue)}
-.back-tit{font-size:.9rem;font-weight:700}
-.empty-state{text-align:center;padding:40px;color:var(--tx2)}
-.spin{display:inline-block;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+.back-tit{font-size:.88rem;font-weight:700}
+.empty-state{text-align:center;padding:36px;color:var(--tx2)}
 @media(max-width:768px){
   .layout{grid-template-columns:1fr}
   .sidebar{position:static;height:auto}
   .stats{grid-template-columns:1fr 1fr}
-  .up-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -177,23 +184,32 @@ table.tt td.skip{background:var(--sur2);color:var(--tx3);font-size:.65rem}
 <div id="up-screen">
   <div class="up-wrap">
     <div class="up-title">📂 시간표 파일 업로드</div>
-    <div class="up-sub">두 파일을 모두 업로드하면 미배정 원인과 해결책을 정확하게 분석합니다</div>
-    <div class="up-grid">
-      <div class="upbox" id="box-assign" onclick="document.getElementById('fi-assign').click()">
-        <div class="ico">📊</div>
-        <div class="tit">교과배당표 (여러 개 가능)</div>
-        <div class="desc">교사별 담당과목·학반·시수<br>국어/수학/영어/과학/사회/예체능 엑셀</div>
-        <div class="fname" id="fname-assign">파일을 선택하세요</div>
-        <input type="file" id="fi-assign" accept=".xlsx,.xls" multiple>
+    <div class="up-sub">교과배당표와 학반별 시간표를 업로드하면 미배정 원인을 정확하게 분석합니다</div>
+
+    <!-- 교과배당표 -->
+    <div class="assign-area">
+      <div class="assign-header">
+        <div>
+          <div class="assign-title">📊 교과배당표</div>
+          <div style="font-size:.72rem;color:var(--tx2);margin-top:2px">국어/수학/영어/과학/사회/예체능 각각 추가</div>
+        </div>
+        <button class="btn-add" onclick="document.getElementById('fi-assign').click()">+ 파일 추가</button>
+        <input type="file" id="fi-assign" accept=".xlsx,.xls" style="display:none">
       </div>
-      <div class="upbox" id="box-tt" onclick="document.getElementById('fi-tt').click()">
-        <div class="ico">🗓️</div>
-        <div class="tit">학반별 시간표</div>
-        <div class="desc">압핀 출력 → 전체학반 시간표<br>현재 배정 현황 엑셀</div>
-        <div class="fname" id="fname-tt">파일을 선택하세요</div>
-        <input type="file" id="fi-tt" accept=".xlsx,.xls">
+      <div class="file-list" id="assign-list">
+        <div class="file-empty">파일을 추가하세요</div>
       </div>
     </div>
+
+    <!-- 학반별 시간표 -->
+    <div class="tt-area" id="tt-area" onclick="document.getElementById('fi-tt').click()">
+      <div class="ico">🗓️</div>
+      <div class="tit">학반별 시간표</div>
+      <div class="desc">압핀 출력 → 전체학반 시간표 엑셀</div>
+      <div class="fname" id="fname-tt">파일을 선택하세요</div>
+      <input type="file" id="fi-tt" accept=".xlsx,.xls">
+    </div>
+
     <button class="btn-start" id="btn-start" onclick="startAnalysis()">🔍 분석 시작</button>
   </div>
 </div>
@@ -231,7 +247,7 @@ table.tt td.skip{background:var(--sur2);color:var(--tx3);font-size:.65rem}
       </div>
       <div class="page" id="page-suggest">
         <div class="ptit">💡 학반 변경 제안</div>
-        <div class="psub">미배정 해결을 위해 교사의 담당 학반을 바꿔볼 수 있는 경우를 제안합니다</div>
+        <div class="psub">담당 학반을 바꾸면 미배정이 해결될 수 있는 경우를 제안합니다</div>
         <div id="suggest-list"></div>
       </div>
       <div class="page" id="page-teachers">
@@ -255,56 +271,107 @@ table.tt td.skip{background:var(--sur2);color:var(--tx3);font-size:.65rem}
 const DAYS=['월','화','수','목','금'];
 const MAX_P={월:7,화:7,수:6,목:7,금:7};
 const SKIP_FIRST=new Set(['월_1']);
-const SKIP_SUBJ=new Set(['진로','동아','창체','창체1','창체2','창1','창2','조회','홈']);
+const SKIP_SUBJ=new Set(['진로','동아','창체','창체1','창체2','창체2(자율2)','창1','창2',
+  '조회','홈','정읍고','정읍여고','정일여중','호남중']);
 const SKIP_NAMES=new Set(['학년. 반','교사','과목','계','합계','소계','강사',
-  '1학년','2학년','3학년','기간제','기간제(윤리)','호남중','정읍여고','정일여중','정읍고']);
+  '1학년','2학년','3학년','기간제','기간제(윤리)']);
 
 const SUBJ_GROUP={
   '국어':'KOR','국A':'KOR','국B':'KOR','국C':'KOR','국D':'KOR','국비':'KOR',
-  '문A':'KOR','문B':'KOR','문C':'KOR','문D':'KOR','독A':'KOR','독B':'KOR',
-  '화법과 작문':'KOR','화법':'KOR','영어':'ENG','영A':'ENG','영B':'ENG',
-  '영C':'ENG','영D':'ENG','영논':'ENG','심영':'ENG','영독해':'ENG',
+  '문학':'KOR','문A':'KOR','문B':'KOR','문C':'KOR','문D':'KOR',
+  '독A':'KOR','독B':'KOR','화법과 작문':'KOR','화법':'KOR',
+  '영어':'ENG','영A':'ENG','영B':'ENG','영C':'ENG','영D':'ENG',
+  '영논':'ENG','심영':'ENG','영어독해와작문':'ENG','영어12':'ENG',
   '수학':'MATH','수A':'MATH','수B':'MATH','수C':'MATH','수D':'MATH',
-  '확통':'MATH','확률과통계':'MATH','확률과 통계':'MATH','경기':'MATH',
-  '미적분':'MATH','기하':'MATH','수학1':'MATH','수학과제탐구':'MATH',
+  '수학1':'MATH','수학12':'MATH','수학13':'MATH',
+  '확통':'MATH','확률과통계':'MATH','확률과 통계':'MATH',
+  '경기':'MATH','미적분':'MATH','기하':'MATH','수학과제탐구':'MATH',
   '탐A':'EXP','탐B':'EXP','탐C':'EXP','탐1':'EXP','탐2':'EXP','탐3':'EXP',
-  '탐4':'EXP','탐5':'EXP','물리':'EXP','화학':'EXP','생명과학':'EXP',
-  '생활과 과학':'EXP','세계사':'EXP','경제':'EXP','세계지리':'EXP',
-  '생활과 윤리':'EXP','한국지리':'EXP','사회문화':'EXP','정치와 법':'EXP',
+  '물리Ⅰ':'EXP','물리Ⅱ':'EXP','물리':'EXP','물12':'EXP','물23':'EXP',
+  '화학Ⅰ':'EXP','화학Ⅱ':'EXP','화학':'EXP','화12':'EXP','화23':'EXP',
+  '생명과학Ⅰ':'EXP','생명과학Ⅱ':'EXP','생12':'EXP','생23':'EXP',
+  '생활과 과학':'EXP','생활과학':'EXP',
+  '세계사':'EXP','경제':'EXP','세계지리':'EXP','생활과 윤리':'EXP',
+  '한국지리':'EXP','사회문화':'EXP','정치와 법':'EXP','통합과학':'EXP',
 };
-const GROUP_NAME={KOR:'국어군',ENG:'영어군',MATH:'수학군',EXP:'탐구군',ETC:'기타군'};
-function getGroup(s){return SUBJ_GROUP[s?.trim()]||'ETC';}
+const GROUP_NAME={KOR:'국어군',ENG:'영어군',MATH:'수학군',EXP:'탐구/과학군',ETC:'기타군'};
+function getGroup(s){ return SUBJ_GROUP[s?.trim()]||'ETC'; }
 
 const ALL_KLASSES=['1-1','1-2','1-3','1-4','1-5','1-6',
   '2-1','2-2','2-3','2-4','2-5','2-6','3-1','3-2','3-3','3-4','3-5','3-6'];
 const COL_TO_KLASS={};
-ALL_KLASSES.forEach((k,i)=>{COL_TO_KLASS[i+2]=k;});
+ALL_KLASSES.forEach((k,i)=>{ COL_TO_KLASS[i+2]=k; });
 
 const COL_MAP={};
 const DS={월:1,화:8,수:15,목:21,금:28};
 const DP={월:7,화:7,수:6,목:7,금:7};
-for(const [d,s] of Object.entries(DS)){
+for(const [d,s] of Object.entries(DS))
   for(let p=1;p<=DP[d];p++) COL_MAP[s+p-1]={day:d,period:p};
-}
 
 let D={assignments:{},klassTT:{},teacherSch:{},klasses:[],teachers:[],unassigned:[],suggestions:[]};
-let assignFiles=[], ttFile=null;
+let assignFileObjs=[], ttFile=null;
 
+// 약어 생성
+function makeAbbr(name){
+  name=name.trim();
+  if(name.startsWith('박정')&&name.length===3) return name.slice(1); // 정민,정교,정조
+  return name.slice(0,2);
+}
+
+// 교과배당표 파일 추가
 document.getElementById('fi-assign').addEventListener('change',e=>{
-  assignFiles=Array.from(e.target.files);
-  document.getElementById('fname-assign').textContent=assignFiles.map(f=>f.name).join(', ');
-  document.getElementById('box-assign').classList.add('done');
+  for(const file of Array.from(e.target.files)){
+    if(!assignFileObjs.find(f=>f.name===file.name)){
+      assignFileObjs.push(file);
+    }
+  }
+  renderAssignList();
   checkReady();
+  e.target.value='';
+});
+
+function renderAssignList(){
+  const el=document.getElementById('assign-list');
+  if(assignFileObjs.length===0){
+    el.innerHTML='<div class="file-empty">파일을 추가하세요</div>';
+    return;
+  }
+  el.innerHTML=assignFileObjs.map((f,i)=>`
+    <div class="file-item">
+      <span style="font-size:.8rem">📄</span>
+      <span class="fname">${f.name}</span>
+      <button class="del" onclick="removeAssignFile(${i})">✕</button>
+    </div>`).join('');
+}
+
+function removeAssignFile(i){
+  assignFileObjs.splice(i,1);
+  renderAssignList();
+  checkReady();
+}
+
+// 학반별 시간표 업로드
+const ttArea=document.getElementById('tt-area');
+ttArea.addEventListener('dragover',e=>{e.preventDefault();ttArea.classList.add('drag');});
+ttArea.addEventListener('dragleave',()=>ttArea.classList.remove('drag'));
+ttArea.addEventListener('drop',e=>{
+  e.preventDefault();ttArea.classList.remove('drag');
+  if(e.dataTransfer.files[0]) setTTFile(e.dataTransfer.files[0]);
 });
 document.getElementById('fi-tt').addEventListener('change',e=>{
-  ttFile=e.target.files[0];
-  document.getElementById('fname-tt').textContent=ttFile.name;
-  document.getElementById('box-tt').classList.add('done');
-  checkReady();
+  if(e.target.files[0]) setTTFile(e.target.files[0]);
 });
+function setTTFile(f){
+  ttFile=f;
+  document.getElementById('fname-tt').textContent=f.name;
+  ttArea.classList.add('done');
+  checkReady();
+}
+
 function checkReady(){
-  if(assignFiles.length>0&&ttFile)
-    document.getElementById('btn-start').classList.add('ready');
+  const btn=document.getElementById('btn-start');
+  if(assignFileObjs.length>0&&ttFile) btn.classList.add('ready');
+  else btn.classList.remove('ready');
 }
 
 function readExcel(file){
@@ -327,7 +394,7 @@ async function startAnalysis(){
   btn.textContent='⏳ 분석 중...';
   try{
     D={assignments:{},klassTT:{},teacherSch:{},klasses:[],teachers:[],unassigned:[],suggestions:[]};
-    for(const file of assignFiles){
+    for(const file of assignFileObjs){
       const rows=await readExcel(file);
       parseAssignments(rows);
     }
@@ -342,31 +409,48 @@ async function startAnalysis(){
   }
 }
 
+// ═══ 교과배당표 파싱 ═══
 function parseAssignments(rows){
-  let curT=null,curS=null;
-  for(const row of rows){
+  // 교사 데이터 시작점 찾기
+  let teacherStart=null;
+  for(let i=0;i<rows.length;i++){
+    const a=rows[i][0];
+    if(a==='교사'){ teacherStart=i+1; break; }
+    if(a==='계'){ teacherStart=i+2; break; }
+  }
+  if(teacherStart===null) return;
+
+  let curAbbr=null, curSubject=null;
+  for(let i=teacherStart;i<rows.length;i++){
+    const row=rows[i];
+    if(!row.some(v=>v!=null)) continue;
     const a=row[0]!=null?String(row[0]).trim():'';
     const b=row[1]!=null?String(row[1]).trim():'';
-    if(a&&a.length>=2&&!SKIP_NAMES.has(a)&&!a.startsWith('=')
-       &&!a.replace(/\./g,'').match(/^\d+$/)&&/[가-힣]/.test(a)){
-      curT=a;
-      curS=(b&&!SKIP_SUBJ.has(b)&&!b.startsWith('='))?b:null;
-    }else if(!a&&b&&curT&&!SKIP_SUBJ.has(b)&&!b.startsWith('=')){
-      curS=b;
+
+    // 교사명 (A열에 한글 이름)
+    if(a&&a.length>=2&&!SKIP_NAMES.has(a)&&!a.replace(/\./g,'').match(/^\d+$/)
+       &&/[가-힣]/.test(a)&&!SKIP_SUBJ.has(a)){
+      curAbbr=makeAbbr(a);
+      curSubject=(b&&!SKIP_SUBJ.has(b)&&b!=='None')?b:null;
+    }else if(!a&&b&&b!=='None'&&!SKIP_SUBJ.has(b)&&curAbbr){
+      curSubject=b;
     }
-    if(curT&&curS&&!SKIP_SUBJ.has(curS)&&!SKIP_NAMES.has(curT)){
+
+    // 시수 읽기
+    if(curAbbr&&curSubject&&!SKIP_SUBJ.has(curSubject)){
       for(const[ci,klass]of Object.entries(COL_TO_KLASS)){
         const val=row[parseInt(ci)];
         if(typeof val==='number'&&val>=1&&val<=9){
-          if(!D.assignments[curT]) D.assignments[curT]=[];
-          const exists=D.assignments[curT].some(x=>x.subject===curS&&x.klass===klass);
-          if(!exists) D.assignments[curT].push({subject:curS,klass,hours:Math.round(val)});
+          if(!D.assignments[curAbbr]) D.assignments[curAbbr]=[];
+          const exists=D.assignments[curAbbr].some(x=>x.subject===curSubject&&x.klass===klass);
+          if(!exists) D.assignments[curAbbr].push({subject:curSubject,klass,hours:Math.round(val)});
         }
       }
     }
   }
 }
 
+// ═══ 학반별 시간표 파싱 ═══
 function parseTimetable(rows){
   let i=4;
   while(i<rows.length){
@@ -399,87 +483,84 @@ function parseTimetable(rows){
   }));
 }
 
+// ═══ 미배정 탐지 ═══
 function detectUnassigned(){
   D.unassigned=[];
-  for(const[teacher,items]of Object.entries(D.assignments)){
-    const abbr=teacher.slice(0,2);
+  for(const[abbr,items]of Object.entries(D.assignments)){
     for(const item of items){
       const{subject,klass,hours}=item;
       const assigned=(D.teacherSch[abbr]||[]).filter(
         s=>s.klass===klass&&s.subject===subject).length;
       if(assigned<hours){
-        const grade=klass.split('-')[0];
         const tt=D.klassTT[klass]||{};
-        const emptySlots=[];
+        const emptySlots=[],possibleSlots=[],blockedSlots=[];
         for(const day of DAYS){
           for(let p=1;p<=MAX_P[day];p++){
             if(SKIP_FIRST.has(`${day}_${p}`)) continue;
-            if(!tt[`${day}_${p}`]) emptySlots.push({day,period:p});
-          }
-        }
-        const possibleSlots=[],blockedSlots=[];
-        for(const{day,period}of emptySlots){
-          const busy=(D.teacherSch[abbr]||[]).some(s=>s.day===day&&s.period===period);
-          if(!busy) possibleSlots.push({day,period});
-          else{
-            const sl=(D.teacherSch[abbr]||[]).find(s=>s.day===day&&s.period===period);
-            blockedSlots.push({day,period,teacherSlot:sl});
+            if(!tt[`${day}_${p}`]){
+              emptySlots.push({day,period:p});
+              const busy=(D.teacherSch[abbr]||[]).some(s=>s.day===day&&s.period===p);
+              if(!busy) possibleSlots.push({day,period:p});
+              else{
+                const sl=(D.teacherSch[abbr]||[]).find(s=>s.day===day&&s.period===p);
+                blockedSlots.push({day,period:p,teacherSlot:sl});
+              }
+            }
           }
         }
         const reasons=[];
         if(emptySlots.length===0){
           reasons.push(`${klass}반의 모든 교시가 이미 배정되어 넣을 자리가 없습니다`);
         }else if(possibleSlots.length===0){
-          reasons.push(`${klass}반에 빈 교시가 있지만 ${teacher} 선생님이 그 시간에 모두 다른 반 수업 중입니다`);
+          reasons.push(`${klass}반에 빈 교시가 있지만 ${abbr} 선생님이 그 시간에 모두 다른 반 수업 중입니다`);
           const oth=blockedSlots.slice(0,3).map(b=>`${b.day}요일 ${b.period}교시(${b.teacherSlot?.klass||''})`);
           reasons.push(`충돌 교시: ${oth.join(', ')}`);
         }else{
-          reasons.push(`${teacher} 선생님이 ${klass}반 ${possibleSlots.slice(0,3).map(s=>`${s.day}${s.period}교시`).join(', ')}에 배정 가능하나 이동수업 묶음 제약으로 압핀이 배정하지 못한 것으로 보입니다`);
+          reasons.push(`${abbr} 선생님이 ${klass}반 ${possibleSlots.slice(0,3).map(s=>`${s.day}${s.period}교시`).join(', ')}에 배정 가능`);
+          reasons.push(`이동수업 묶음 제약으로 압핀이 자동 배정하지 못한 것으로 보입니다`);
         }
-        const group=getGroup(subject);
-        D.unassigned.push({teacher,abbr,subject,klass,required:hours,assigned,
-          missing:hours-assigned,reasons,emptySlots,possibleSlots,blockedSlots,group});
+        D.unassigned.push({abbr,subject,klass,required:hours,assigned,missing:hours-assigned,
+          reasons,emptySlots,possibleSlots,blockedSlots,group:getGroup(subject)});
       }
     }
   }
 }
 
+// ═══ 학반 변경 제안 ═══
 function generateSuggestions(){
   D.suggestions=[];
   for(const ua of D.unassigned){
-    const{teacher,abbr,subject,klass}=ua;
+    const{abbr,subject,klass}=ua;
     const grade=klass.split('-')[0];
-    // 같은 학년 같은 과목을 가르치는 다른 교사들 찾기
     const candidates=[];
+    // 같은 학년 같은 과목군 다른 교사 찾기
     for(const[otherAbbr,slots]of Object.entries(D.teacherSch)){
       if(otherAbbr===abbr) continue;
-      // 다른 교사가 같은 학년 같은 과목군을 가르치는지
-      const otherSameGrade=slots.filter(s=>
-        s.klass.startsWith(grade+'-')&&getGroup(s.subject)===getGroup(subject)
-      );
-      if(otherSameGrade.length===0) continue;
-      // 다른 교사가 담당하는 반 중 abbr이 들어갈 수 있는 반
-      for(const sl of otherSameGrade){
-        const targetKlass=sl.klass;
-        if(targetKlass===klass) continue;
-        // 이 반에 abbr이 배정 가능한지 (빈 교시가 있고 교사도 가능한지)
-        const tt=D.klassTT[targetKlass]||{};
-        const canFit=Object.keys(tt).length<33; // 빈 자리 있음
-        if(canFit){
-          candidates.push({
-            swapTeacher1:{abbr,from:klass,to:targetKlass},
-            swapTeacher2:{abbr:otherAbbr,from:targetKlass,to:klass},
-            note:`${teacher} 선생님이 ${klass}→${targetKlass}로 이동하고, ${otherAbbr} 선생님이 ${targetKlass}→${klass}로 이동`
-          });
-        }
+      const otherGradeSlots=slots.filter(s=>
+        s.klass.startsWith(grade+'-')&&getGroup(s.subject)===getGroup(subject));
+      for(const sl of otherGradeSlots){
+        if(sl.klass===klass) continue;
+        candidates.push({
+          swapT1:{abbr,from:klass,to:sl.klass},
+          swapT2:{abbr:otherAbbr,from:sl.klass,to:klass},
+          note:`${abbr}↔${otherAbbr} 담당 학반 교환 (${klass}↔${sl.klass})`
+        });
       }
     }
     if(candidates.length>0){
-      D.suggestions.push({...ua,candidates:candidates.slice(0,3)});
+      // 중복 제거
+      const seen=new Set();
+      const uniq=candidates.filter(c=>{
+        const key=`${c.swapT2.abbr}_${c.swapT1.from}_${c.swapT1.to}`;
+        if(seen.has(key)) return false;
+        seen.add(key);return true;
+      });
+      D.suggestions.push({...ua,candidates:uniq.slice(0,3)});
     }
   }
 }
 
+// ═══ 앱 초기화 ═══
 function initApp(){
   document.getElementById('up-screen').style.display='none';
   document.getElementById('main').style.display='block';
@@ -493,9 +574,8 @@ function initApp(){
 function renderOverview(){
   const ua=D.unassigned.length;
   const assigned=Object.values(D.teacherSch).reduce((s,v)=>s+v.length,0);
-  const teacherCount=Object.keys(D.assignments).length;
   document.getElementById('stat-row').innerHTML=`
-    <div class="sc b"><div class="n">${teacherCount}</div><div class="l">교사 수</div></div>
+    <div class="sc b"><div class="n">${Object.keys(D.assignments).length}</div><div class="l">교사 수 (배당표)</div></div>
     <div class="sc b"><div class="n">${D.klasses.length}</div><div class="l">학반 수</div></div>
     <div class="sc g"><div class="n">${assigned}</div><div class="l">배정된 수업</div></div>
     <div class="sc ${ua>0?'r':'g'}"><div class="n">${ua}</div><div class="l">미배정 건수</div></div>`;
@@ -503,11 +583,11 @@ function renderOverview(){
   if(ua===0){
     html='<div class="empty-state"><div style="font-size:2rem;margin-bottom:8px">✅</div>모든 수업이 배정되었습니다!</div>';
   }else{
-    html=`<div style="font-size:.85rem;color:var(--tx2);margin-bottom:10px">⚠️ 미배정 ${ua}건 발견</div>`;
+    html=`<div style="font-size:.83rem;color:var(--tx2);margin-bottom:10px">⚠️ 미배정 ${ua}건 발견</div>`;
     for(const u of D.unassigned){
-      html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 13px;
-        background:var(--rdim);border:1px solid #6b1a1a;border-radius:8px;margin-bottom:7px;font-size:.83rem">
-        <span style="font-family:var(--mono);color:var(--red);font-weight:700">${u.teacher}</span>
+      html+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+        background:var(--rdim);border:1px solid #6b1a1a;border-radius:8px;margin-bottom:6px;font-size:.82rem">
+        <span style="font-family:var(--mono);color:var(--red);font-weight:700">${u.abbr}</span>
         <span style="color:var(--tx2)">${u.subject} ${u.klass}반</span>
         <span style="color:var(--red);margin-left:auto">${u.assigned}/${u.required}시간</span>
       </div>`;
@@ -525,7 +605,7 @@ function renderUnassigned(){
   el.innerHTML=D.unassigned.map((u,i)=>`
     <div class="ua-card">
       <div class="ua-hd" onclick="toggleUA(${i})">
-        <span class="ua-tag">${u.teacher} · ${u.subject} ${u.klass}</span>
+        <span class="ua-tag">${u.abbr} · ${u.subject} ${u.klass}</span>
         <span class="ua-title">${u.assigned}/${u.required}시간 (${u.missing}시간 미배정)</span>
         <span class="ua-arrow" id="arr-${i}">▼</span>
       </div>
@@ -536,29 +616,18 @@ function renderUnassigned(){
         </div>
         ${u.possibleSlots.length>0?`
         <div class="ds">
-          <div class="ds-lbl">배정 가능한 교시 (교사 시간 비어있음)</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px">
-            ${u.possibleSlots.slice(0,6).map(s=>`
-              <span style="background:var(--gdim);border:1px solid var(--grn);border-radius:5px;
-                padding:3px 9px;font-size:.75rem;font-family:var(--mono);color:var(--grn)">
-                ${s.day}요일 ${s.period}교시</span>`).join('')}
-          </div>
+          <div class="ds-lbl">배정 가능한 교시 (교사 비어있음)</div>
+          <div>${u.possibleSlots.slice(0,6).map(s=>`<span class="slot-chip">${s.day}요일 ${s.period}교시</span>`).join('')}</div>
         </div>`:''}
         ${u.blockedSlots.length>0?`
         <div class="ds">
-          <div class="ds-lbl">충돌 교시 (${u.teacher} 선생님이 다른 반 수업 중)</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px">
-            ${u.blockedSlots.slice(0,6).map(b=>`
-              <span style="background:var(--rdim);border:1px solid var(--red);border-radius:5px;
-                padding:3px 9px;font-size:.75rem;font-family:var(--mono);color:var(--red)">
-                ${b.day}요일 ${b.period}교시 (${b.teacherSlot?.klass||''})</span>`).join('')}
-          </div>
+          <div class="ds-lbl">충돌 교시 (${u.abbr} 선생님이 다른 반 수업 중)</div>
+          <div>${u.blockedSlots.slice(0,6).map(b=>`<span class="block-chip">${b.day}요일 ${b.period}교시 → ${b.teacherSlot?.klass||''}</span>`).join('')}</div>
         </div>`:''}
         <div class="ds">
-          <div class="ds-lbl">과목군 정보</div>
-          <div style="font-size:.78rem;color:var(--tx2)">
-            ${GROUP_NAME[u.group]||'기타군'} — 
-            ${u.group==='ETC'?'기타 과목은 국영수·탐구 수업과 교체 불가':
+          <div class="ds-lbl">과목군: ${GROUP_NAME[u.group]||'기타군'}</div>
+          <div style="font-size:.76rem;color:var(--tx2)">
+            ${u.group==='ETC'?'기타과목 → 국영수·탐구 수업 시간과 교체 불가':
               GROUP_NAME[u.group]+' 교사들과만 교체 가능'}
           </div>
         </div>
@@ -576,35 +645,35 @@ function renderSuggestions(){
     el.innerHTML=`<div class="empty-state">
       <div style="font-size:2rem;margin-bottom:8px">💡</div>
       <div>자동으로 찾은 학반 변경 제안이 없습니다.<br>
-      <span style="font-size:.8rem;color:var(--tx3)">미배정 진단 탭에서 충돌 교시를 확인하고<br>수동으로 담당 학반을 조정해 보세요.</span></div>
+      <span style="font-size:.78rem;color:var(--tx3)">미배정 진단 탭에서 충돌 교시를 확인하고<br>수동으로 담당 학반을 조정해 보세요.</span></div>
     </div>`;
     return;
   }
   el.innerHTML=D.suggestions.map(u=>`
     <div class="ua-card">
-      <div style="padding:13px 16px;background:var(--ydim);border-bottom:1px solid #6b4a00;
+      <div style="padding:12px 15px;background:var(--ydim);border-bottom:1px solid #6b4a00;
         display:flex;align-items:center;gap:10px">
-        <span style="font-family:var(--mono);font-size:.72rem;font-weight:700;color:var(--yel);
-          background:#4a3000;border:1px solid var(--yel);border-radius:5px;padding:2px 8px">
-          ${u.teacher} · ${u.subject} ${u.klass}</span>
-        <span style="font-size:.88rem;font-weight:700">${u.missing}시간 미배정 → 학반 변경으로 해결 가능</span>
+        <span style="font-family:var(--mono);font-size:.7rem;font-weight:700;color:var(--yel);
+          background:#4a3000;border:1px solid var(--yel);border-radius:5px;padding:2px 7px">
+          ${u.abbr} · ${u.subject} ${u.klass}</span>
+        <span style="font-size:.85rem;font-weight:700">${u.missing}시간 미배정 → 학반 교환 시도</span>
       </div>
-      <div style="padding:16px">
-        <div class="ds-lbl" style="margin-bottom:8px">💡 제안하는 학반 교환</div>
+      <div style="padding:15px">
+        <div class="ds-lbl" style="margin-bottom:8px">💡 담당 학반 교환 제안</div>
         ${u.candidates.map(c=>`
           <div class="swap-box">
-            <div class="swap-lbl">학반 교환 제안</div>
+            <div class="swap-lbl">학반 교환</div>
             <div class="swap-row">
-              <span class="swap-teacher">${c.swapTeacher1.abbr} 선생님</span>
-              <span class="swap-from">${c.swapTeacher1.from}</span>
+              <span class="swap-teacher">${c.swapT1.abbr} 선생님</span>
+              <span class="swap-from">${c.swapT1.from}</span>
               <span class="swap-arr">→</span>
-              <span class="swap-to">${c.swapTeacher1.to}</span>
+              <span class="swap-to">${c.swapT1.to}</span>
             </div>
             <div class="swap-row">
-              <span class="swap-teacher">${c.swapTeacher2.abbr} 선생님</span>
-              <span class="swap-from">${c.swapTeacher2.from}</span>
+              <span class="swap-teacher">${c.swapT2.abbr} 선생님</span>
+              <span class="swap-from">${c.swapT2.from}</span>
               <span class="swap-arr">→</span>
-              <span class="swap-to">${c.swapTeacher2.to}</span>
+              <span class="swap-to">${c.swapT2.to}</span>
             </div>
             <div class="swap-note">${c.note}</div>
           </div>`).join('')}
@@ -652,9 +721,8 @@ function buildTT(map){
   for(const day of DAYS){
     h+=`<tr><th>${day}</th>`;
     for(let p=1;p<=7;p++){
-      const inDay=p<=MAX_P[day];
       const key=`${day}_${p}`;
-      if(!inDay){h+=`<td class="skip">—</td>`;continue;}
+      if(p>MAX_P[day]){h+=`<td class="skip">—</td>`;continue;}
       if(SKIP_FIRST.has(key)){h+=`<td class="skip">조회</td>`;continue;}
       const s=map[key];
       if(s){h+=`<td class="filled"><div class="tt-sb">${s.subject}</div><div class="tt-kl">${s.klass||''}</div></td>`;}
@@ -664,7 +732,6 @@ function buildTT(map){
   }
   return h+'</tbody></table>';
 }
-
 function renderKlassSel(){
   document.getElementById('kl-sel').innerHTML=D.klasses.map(k=>
     `<div class="kc" onclick="showKlass('${k}',this)">${k}</div>`).join('');
@@ -674,14 +741,11 @@ function showKlass(klass,el){
   el.classList.add('on');
   const tt=D.klassTT[klass]||{};
   const map={};
-  for(const[key,slot]of Object.entries(tt)){
-    map[key]={subject:slot.subject,klass:slot.teacher};
-  }
+  for(const[key,slot]of Object.entries(tt)) map[key]={subject:slot.subject,klass:slot.teacher};
   document.getElementById('kl-detail').innerHTML=`
-    <div style="font-size:.85rem;font-weight:700;color:var(--tx2);margin-bottom:8px">${klass} 학반</div>
+    <div style="font-size:.83rem;font-weight:700;color:var(--tx2);margin-bottom:8px">${klass} 학반</div>
     <div class="tt-wrap">${buildTT(map)}</div>`;
 }
-
 function go(name,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
