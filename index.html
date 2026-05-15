@@ -400,6 +400,8 @@ function parseTimetable(rows){
     abbr,count:D.teacherSch[abbr].length,
     subjects:[...new Set(D.teacherSch[abbr].map(s=>s.subject))].slice(0,4),
   }));
+  D.bundles=buildMovingBundles();
+  console.log('이동수업 묶음:', D.bundles.length,'개');
 }
 
 // ═══ 미배정 탐지 ═══
@@ -452,13 +454,120 @@ function diagnose(klass,day,period,subject,teacher){
   return {klass,day,period,subject,teacher,sameTime,emptyPartners,reasons,chains:[]};
 }
 
-// ═══ 물레방아 탐색 ═══
-function findCarousel(targetKlass,targetDay,targetPeriod,targetSubj){
+// ═══ 이동수업 묶음 탐지 ═══
+// 시간표에서 자동으로 탐지: 같은 요일+교시에 같은 과목군이 배정된 반들
+function buildMovingBundles(){
+  const bundles = {}; // `${day}_${period}_${group}` → Set(klasses)
+
+  for(const[klass,tt]of Object.entries(D.klassTT)){
+    for(const[key,slot]of Object.entries(tt)){
+      if(!slot||SKIP_SUBJ.has(slot.subject)) continue;
+      const g=getGroup(slot.subject);
+      if(g==='ETC') continue;
+      const bkey=`${key}_${g}`;
+      if(!bundles[bkey]) bundles[bkey]=new Set();
+      bundles[bkey].add(klass);
+    }
+  }
+
+  // 유효한 묶음만 (같은 학년 2개 이상)
+  const result=[];
+  const seen=new Set();
+  for(const[bkey,klasses]of Object.entries(bundles)){
+    if(klasses.size<2) continue;
+    const [day,period,group]=bkey.split('_');
+    // 학년별 분리
+    const byGrade={};
+    for(const k of klasses){
+      const g=k.split('-')[0];
+      if(!byGrade[g]) byGrade[g]=[];
+      byGrade[g].push(k);
+    }
+    for(const[grade,gk]of Object.entries(byGrade)){
+      if(gk.length<2) continue;
+      const setKey=JSON.stringify({group,klasses:gk.sort()});
+      if(!seen.has(setKey)){
+        seen.add(setKey);
+        result.push({group,klasses:gk.sort(),grade});
+      }
+    }
+  }
+
+  // EXP(탐구/과학/사회)는 학년 전체 묶음으로 통합
+  const expBundles={};
+  for(const b of result){
+    if(b.group==='EXP'){
+      const key=`${b.grade}_EXP`;
+      if(!expBundles[key]) expBundles[key]=new Set();
+      b.klasses.forEach(k=>expBundles[key].add(k));
+    }
+  }
+  const finalBundles=result.filter(b=>b.group!=='EXP');
+  for(const[key,klasses]of Object.entries(expBundles)){
+    const grade=key.split('_')[0];
+    finalBundles.push({group:'EXP',klasses:[...klasses].sort(),grade,fixed:true});
+  }
+
+  return finalBundles;
+}
+
+// 특정 교사가 특정 슬롯에서 수업을 이동할 때
+// 묶음 파트너들도 같이 이동 가능한지 체크
+function checkBundleConflict(teacher,klass,fromDay,fromPeriod,toDay,toPeriod,subject){
+  const group=getGroup(subject);
+  if(group==='ETC') return {ok:true,conflicts:[]};
+
+  // EXP(탐구)는 이동 불가
+  if(group==='EXP') return {
+    ok:false,
+    conflicts:[`탐구/과학/사회 과목(${subject})은 이동수업 전체 묶음으로 교체 불가`]
+  };
+
+  // 같은 묶음 파트너들이 fromDay+fromPeriod에 같이 있는지 확인
+  const conflicts=[];
+  const grade=klass.split('-')[0];
+
+  // fromDay+fromPeriod에 같은 과목군으로 배정된 다른 반들
+  const partners=[];
+  for(const[k,tt]of Object.entries(D.klassTT)){
+    if(k===klass||k.split('-')[0]!==grade) continue;
+    const s=tt[`${fromDay}_${fromPeriod}`];
+    if(s&&getGroup(s.subject)===group) partners.push({klass:k,slot:s});
+  }
+
+  // 파트너들이 toDay+toPeriod에도 이동 가능한지 확인
+  for(const p of partners){
+    const targetSlot=D.klassTT[p.klass]?.[`${toDay}_${toPeriod}`];
+    if(targetSlot){
+      conflicts.push(`${p.klass}반이 ${toDay}요일 ${toPeriod}교시에 이미 ${targetSlot.subject} 수업 중`);
+    }
+    // 그 반의 교사가 toDay+toPeriod에 비어있는지
+    const partnerTeacher=p.slot.teacher;
+    if(partnerTeacher){
+      const busy=(D.teacherSch[partnerTeacher]||[]).some(
+        s=>s.day===toDay&&s.period===parseInt(toPeriod)
+      );
+      if(busy) conflicts.push(`${partnerTeacher} 선생님이 ${toDay}요일 ${toPeriod}교시에 다른 수업 있음`);
+    }
+  }
+
+  return {ok:conflicts.length===0, conflicts, partners};
+}
+
+// ═══ 물레방아 탐색 (묶음 체크 포함) ═══
+function findCarousel(targetKlass,targetDay,targetPeriod,targetSubj,targetTeacher){
   const grade=targetKlass.split('-')[0];
   const targetGroup=getGroup(targetSubj||'');
   const chains=[];
 
-  // 전체 교사 스케줄 맵 (모든 요일)
+  // EXP는 탐색 자체 불가
+  if(targetGroup==='EXP'){
+    return [{
+      _warning:'탐구/과학/사회 과목은 전체 학년이 하나의 묶음으로 배정되어 교체가 불가능합니다.',
+      _noChain:true
+    }];
+  }
+
   const fullMap={};
   for(const[abbr,slots]of Object.entries(D.teacherSch)){
     if(!fullMap[abbr]) fullMap[abbr]={};
@@ -470,28 +579,40 @@ function findCarousel(targetKlass,targetDay,targetPeriod,targetSubj){
     }
   }
 
-  for(const[teacher,dayMap]of Object.entries(fullMap)){
-    // target 슬롯에 이미 수업 있으면 skip
+  // 교사 약어가 입력된 경우 해당 교사 우선 탐색
+  const teacherList=targetTeacher&&fullMap[targetTeacher]?
+    [[targetTeacher,fullMap[targetTeacher]],...Object.entries(fullMap).filter(([t])=>t!==targetTeacher)]:
+    Object.entries(fullMap);
+
+  for(const[teacher,dayMap]of teacherList){
     if(dayMap[`${targetDay}_${targetPeriod}`]) continue;
 
-    // ── 1단계: 이 교사가 targetKlass를 다른 요일+교시에 가르치는 수업 이동 ──
+    // ── 1단계: targetKlass 수업을 다른 교시→target으로 이동 ──
     for(const[dpKey,slots]of Object.entries(dayMap)){
       for(const slot of slots){
         if(slot.klass!==targetKlass) continue;
         if(targetSubj&&!isCompatible(slot.subject,targetSubj)) continue;
-        const[fromDay,fromPeriod]=dpKey.split('_');
-        // targetKlass의 target 슬롯이 비어있는지 확인
         if(D.klassTT[targetKlass]?.[`${targetDay}_${targetPeriod}`]) continue;
+        const[fromDay,fromPeriod]=dpKey.split('_');
+
+        const check=checkBundleConflict(
+          teacher,targetKlass,fromDay,parseInt(fromPeriod),
+          targetDay,targetPeriod,slot.subject
+        );
+
         chains.push([{
           step:1,teacher,klass:targetKlass,
           fromDay,fromPeriod:parseInt(fromPeriod),
           toDay:targetDay,toPeriod:targetPeriod,
-          subject:slot.subject
+          subject:slot.subject,
+          bundleOk:check.ok,
+          bundleConflicts:check.conflicts,
+          bundlePartners:check.partners||[]
         }]);
       }
     }
 
-    // ── 2단계: 연쇄 교체 ──
+    // ── 2단계: 연쇄 교체 (같은 요일) ──
     const tdSlots=Object.entries(dayMap).filter(([k])=>k.startsWith(targetDay+'_'));
     for(const[fpKey,slots]of tdSlots){
       const fp=parseInt(fpKey.split('_')[1]);
@@ -504,28 +625,59 @@ function findCarousel(targetKlass,targetDay,targetPeriod,targetSubj){
         if(otherTeacher===teacher) continue;
         if(fullMap[otherTeacher]?.[`${targetDay}_${fp}`]) continue;
         if(!isCompatible(slot.subject,otherSlot.subject)) continue;
+
+        const check1=checkBundleConflict(teacher,slot.klass,targetDay,fp,targetDay,targetPeriod,slot.subject);
+        const check2=checkBundleConflict(otherTeacher,otherKlass,targetDay,targetPeriod,targetDay,fp,otherSlot.subject);
+        const bundleOk=check1.ok&&check2.ok;
+        const bundleConflicts=[...check1.conflicts,...check2.conflicts];
+
         chains.push([
           {step:1,teacher,klass:otherKlass,fromDay:targetDay,fromPeriod:fp,
-            toDay:targetDay,toPeriod:targetPeriod,subject:slot.subject},
+            toDay:targetDay,toPeriod:targetPeriod,subject:slot.subject,
+            bundleOk,bundleConflicts},
           {step:2,teacher:otherTeacher,klass:otherKlass,fromDay:targetDay,
-            fromPeriod:targetPeriod,toDay:targetDay,toPeriod:fp,subject:otherSlot.subject},
+            fromPeriod:targetPeriod,toDay:targetDay,toPeriod:fp,subject:otherSlot.subject,
+            bundleOk,bundleConflicts},
         ]);
       }
     }
   }
 
   const seen=new Set();
-  return chains.sort((a,b)=>a.length-b.length).filter(c=>{
+  return chains.sort((a,b)=>{
+    const aOk=a[0]?.bundleOk!==false;
+    const bOk=b[0]?.bundleOk!==false;
+    if(aOk&&!bOk) return -1;
+    if(!aOk&&bOk) return 1;
+    return a.length-b.length;
+  }).filter(c=>{
     const key=JSON.stringify(c.map(s=>[s.teacher,s.fromDay,s.fromPeriod,s.toDay,s.toPeriod,s.klass]));
     if(seen.has(key)) return false; seen.add(key); return true;
   }).slice(0,8);
 }
 
 function renderChains(chains){
-  if(!chains.length) return '<p class="no-chain">탐색된 교체 경로가 없습니다. 수동으로 조정이 필요합니다.</p>';
-  return chains.map((c,i)=>`
-    <div class="chain-box">
-      <div class="chain-title">${i+1}번 경로 — ${c.length}단계 교체</div>
+  if(!chains.length) return '<p class="no-chain">탐색된 교체 경로가 없습니다.</p>';
+
+  // EXP 불가 경고
+  if(chains[0]?._noChain) return `
+    <div style="background:var(--rdim);border:1px solid var(--red);border-radius:8px;
+      padding:12px 14px;font-size:.82rem;color:var(--red)">
+      ⛔ ${chains[0]._warning}
+    </div>`;
+
+  return chains.map((c,i)=>{
+    const bundleOk=c[0]?.bundleOk!==false;
+    const conflicts=c[0]?.bundleConflicts||[];
+    const partners=c[0]?.bundlePartners||[];
+
+    return `<div class="chain-box" style="${bundleOk?'':'opacity:.6;border-color:var(--red);background:var(--rdim)'}">
+      <div class="chain-title">
+        ${i+1}번 경로 — ${c.length}단계 교체
+        ${bundleOk?
+          '<span style="color:var(--grn);font-size:.7rem;margin-left:8px">✅ 압핀 적용 가능</span>':
+          '<span style="color:var(--red);font-size:.7rem;margin-left:8px">⚠️ 묶음 충돌 — 압핀 적용 시 다른 미배정 발생</span>'}
+      </div>
       ${c.map(s=>`<div class="chain-step">
         <div class="step-num">${s.step}</div>
         <div class="step-teacher">${s.teacher}</div>
@@ -536,7 +688,18 @@ function renderChains(chains){
           <span style="color:var(--tx3);font-size:.72rem">(${s.subject})</span>
         </div>
       </div>`).join('')}
-    </div>`).join('');
+      ${!bundleOk&&conflicts.length?`
+        <div style="margin-top:8px;padding:8px 10px;background:#2d0a0a;border-radius:6px;
+          font-size:.75rem;color:var(--red)">
+          충돌 이유: ${conflicts.slice(0,2).join(' / ')}
+        </div>`:''}
+      ${bundleOk&&partners.length?`
+        <div style="margin-top:8px;padding:8px 10px;background:#0d1f3c;border-radius:6px;
+          font-size:.75rem;color:var(--blue)">
+          함께 이동해야 할 반: ${partners.map(p=>p.klass).join(', ')}
+        </div>`:''}
+    </div>`;
+  }).join('');
 }
 
 // ═══ 앱 초기화 ═══
@@ -594,12 +757,21 @@ function renderUnassigned(){
           ${u.reasons.map(r=>`<div class="reason"><span class="bul">→</span><span>${r}</span></div>`).join('')}
         </div>
         <div class="ds">
-          <div class="ds-lbl">이 칸에 들어와야 할 과목 입력 후 물레방아 탐색</div>
-          <div class="subj-input-row">
-            <input class="subj-input" id="subj-${i}" placeholder="예: 경기, 수A, 영B, 태권..."
-              value="${u.subject||''}">
+          <div class="ds-lbl">압핀 미배정 정보 입력</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:.75rem;color:var(--tx2)">과목</span>
+              <input class="subj-input" id="subj-${i}" placeholder="예: 국어, 경기..."
+                value="${u.subject||''}" style="max-width:120px">
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:.75rem;color:var(--tx2)">교사(약어)</span>
+              <input class="subj-input" id="teacher-${i}" placeholder="예: 황광, 이근..."
+                style="max-width:100px">
+            </div>
             <button class="btn-search" onclick="searchCarousel(${i},'${u.klass}','${u.day}',${u.period})">탐색</button>
           </div>
+          <div id="teacher-info-${i}"></div>
           <div id="chain-result-${i}"></div>
         </div>
         <div class="ds">
@@ -632,7 +804,40 @@ function toggleUA(i){
 
 function searchCarousel(i,klass,day,period){
   const subj=document.getElementById('subj-'+i).value.trim();
-  const chains=findCarousel(klass,day,period,subj||null);
+  const teacherAbbr=document.getElementById('teacher-'+i).value.trim();
+
+  // 교사 시간표 현황 표시
+  const infoEl=document.getElementById('teacher-info-'+i);
+  if(teacherAbbr&&D.teacherSch[teacherAbbr]){
+    const slots=D.teacherSch[teacherAbbr];
+    const total=slots.length;
+    // 해당 교사의 충돌 교시 (빈 칸과 같은 요일에 이미 수업 있는 교시)
+    const daySlots=slots.filter(s=>s.day===day);
+    const html=`
+      <div style="background:var(--sur2);border-radius:7px;padding:10px 12px;margin-bottom:10px;font-size:.8rem">
+        <div style="font-weight:700;color:var(--blue);margin-bottom:6px">
+          ${teacherAbbr} 선생님 — 총 ${total}시간
+        </div>
+        <div style="color:var(--tx2)">
+          ${day}요일 배정:
+          ${daySlots.length>0?
+            daySlots.map(s=>`<span style="background:var(--bdim);border-radius:4px;padding:1px 7px;margin:1px;font-family:var(--mono);font-size:.72rem;color:var(--blue)">${s.period}교시(${s.klass})</span>`).join(''):
+            `<span style="color:var(--grn)">비어있음</span>`}
+        </div>
+        ${daySlots.some(s=>s.period===parseInt(period))?
+          `<div style="color:var(--red);margin-top:5px;font-size:.75rem">
+            ⚠️ ${day}요일 ${period}교시에 이미 다른 반 수업 있음
+          </div>`:''}
+      </div>`;
+    infoEl.innerHTML=html;
+  } else if(teacherAbbr){
+    infoEl.innerHTML=`<div style="color:var(--tx3);font-size:.78rem;margin-bottom:8px">
+      "${teacherAbbr}" 선생님을 시간표에서 찾을 수 없습니다</div>`;
+  } else {
+    infoEl.innerHTML='';
+  }
+
+  const chains=findCarousel(klass,day,period,subj||null,teacherAbbr||null);
   document.getElementById('chain-result-'+i).innerHTML=renderChains(chains);
 }
 
